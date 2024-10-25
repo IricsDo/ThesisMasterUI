@@ -1,5 +1,12 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
+        <file>view/BaseWindow.qml</file>
+        <file>view/top/UploadFolder.qml</file>
+        <file>icons/ai_24.png</file>
+        <file>icons/ai_32.png</file>
+        <file>icons/ai_64.png</file>
+        <file>view/top/items/UF_Button.qml</file>
+        <file>view/top/items/UF_Label.qml</file>
     </qresource>
 </RCC>

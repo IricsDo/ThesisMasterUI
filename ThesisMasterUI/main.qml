@@ -2,10 +2,12 @@ import QtQuick 2.15
 import QtQuick.Window 2.15
 import QtQuick.VirtualKeyboard 2.15
 
+import "view"
+
 Window {
     id: window
-    width: 640
-    height: 480
+    width: 660
+    height: 300
     visible: true
     title: qsTr("Hello World")
 
@@ -36,5 +38,9 @@ Window {
                 }
             }
         }
+    }
+
+    BaseWindow{
+        anchors.fill: parent
     }
 }

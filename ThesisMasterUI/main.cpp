@@ -1,7 +1,9 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
+#include <QIcon>
 #include <QLocale>
+#include <QPixmap>
 #include <QTranslator>
 
 int main(int argc, char *argv[])
@@ -12,6 +14,13 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
     QGuiApplication app(argc, argv);
+
+    app.setOrganizationName("Iric");
+    app.setOrganizationDomain("iric.life1407@gmail.com");
+    app.setApplicationName("Unmanned-Surveillance-Device-USD");
+    app.setApplicationDisplayName("Unmanned-Surveillance-Device-USD");
+    app.setDesktopFileName("Unmanned-Surveillance-Device-USD");
+    app.setWindowIcon(QIcon(QPixmap(":/icons/ai_64.png")));
 
     QTranslator translator;
     const QStringList uiLanguages = QLocale::system().uiLanguages();
