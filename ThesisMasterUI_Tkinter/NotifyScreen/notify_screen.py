@@ -9,17 +9,20 @@ from enum import Enum
 ctk.set_appearance_mode("Dark")  # Dark mode to match the image
 ctk.set_default_color_theme("blue")
 
+
 class TypeNotify(Enum):
     INFOR = 1
     WARNING = 2
     ERROR = 3
     COUNT = 4
 
+
 MAP_ICON = {1: "information.png", 2: "warning.png", 3: "error.png"}
 MAP_COLOR = {1: "blue", 2: "yellow", 3: "red"}
 
+
 class App(ctk.CTk):
-    def __init__(self, text_body : str, type_notify: TypeNotify = TypeNotify.INFOR):
+    def __init__(self, text_body: str, type_notify: TypeNotify = TypeNotify.INFOR):
         super().__init__()
 
         self.type_notify = type_notify
@@ -60,7 +63,9 @@ class App(ctk.CTk):
             os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "images"
         )
 
-        icon_image = Image.open(os.path.join(image_path, MAP_ICON[self.type_notify.value]))
+        icon_image = Image.open(
+            os.path.join(image_path, MAP_ICON[self.type_notify.value])
+        )
         icon_photo = ImageTk.PhotoImage(icon_image)
         icon_label = tk.Label(frame, image=icon_photo, bg="#2b2b2b")
         icon_label.image = icon_photo  # Keep a reference to prevent garbage collection
@@ -89,7 +94,7 @@ class App(ctk.CTk):
 
 
 if __name__ == "__main__":
-    app = App(text_body= "This is example notify", type_notify = TypeNotify.ERROR)
+    app = App(text_body="This is example notify", type_notify=TypeNotify.ERROR)
     app.resizable(False, False)
     app.overrideredirect(True)
     app.attributes("-topmost", True)
