@@ -1,25 +1,23 @@
 import customtkinter as ctk
 from tkinter import messagebox
 
-ctk.set_appearance_mode("Dark")
-ctk.set_default_color_theme("blue")
 
 
-class LoggerUI(ctk.CTk):
-    def __init__(self):
-        super().__init__()
+class LoggerUI(ctk.CTkToplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
 
         # Window settings
         self.title("Logger UI")
 
         width = 640
         height = 360
-        screen_width = self.winfo_screenwidth()
-        screen_height = self.winfo_screenheight()
+        scaleFactor= 1.25
+        screen_width = int(self.winfo_screenwidth() * scaleFactor)
 
         # Calculate position coordinates
-        x = (screen_width // 2) - (width // 2)
-        y = (screen_height // 2) - (height // 2)
+        x = screen_width - width - 180
+        y = 0  
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -29,10 +27,19 @@ class LoggerUI(ctk.CTk):
         # Call the method to build the UI
         self.build_ui()
 
+        self.resizable(False, False)
+        self.overrideredirect(True)
+        self.attributes("-topmost", True)
+
+    def set_icon(self, icon_photo):
+        self.icon_photo = icon_photo
+        self.wm_iconbitmap()
+        self.after(300, lambda: self.iconphoto(False, self.icon_photo)) 
+
     def on_close(self):
         """Handle the event when the X button is pressed."""
         # Display a message or ignore the close event
-        messagebox.showinfo("Action Denied", "The X button is disabled.")
+        messagebox.showinfo("Action Denied", "Can not close this window")
 
     def build_ui(self):
         """Build the UI components."""
@@ -53,17 +60,11 @@ class LoggerUI(ctk.CTk):
         self.textbox = ctk.CTkTextbox(
             self.main_frame, width=600, height=300, corner_radius=10
         )
+        self.textbox.configure(state="disabled")  # This makes the textbox read-only
         self.textbox._textbox.configure(
             font=("Consolas", 14)
         )  # Use the `_textbox` attribute
         self.textbox.pack(pady=0, padx=0)
-
-        # Add example text
-        sample_text = (
-            "Example tessssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssxt\n"
-            * 10
-        )  # Repeat "Example text" 10 times
-        self.add_log(sample_text)
 
     def add_log(self, log_text):
         """Add logs to the textbox."""
@@ -82,13 +83,3 @@ class LoggerUI(ctk.CTk):
     def close_window(self):
         """Quit the application."""
         self.destroy()
-
-
-# Run the application
-if __name__ == "__main__":
-    app = LoggerUI()
-    app.resizable(False, False)
-    app.attributes("-topmost", True)
-    app.update()
-    app.attributes("-topmost", False)
-    app.mainloop()
