@@ -78,18 +78,18 @@ class NotifyScreen(ctk.CTkToplevel):
             os.path.join(image_path, MAP_ICON[self.type_notify.value])
         )
         icon_photo = ImageTk.PhotoImage(icon_image)
-        icon_label = tk.Label(frame, image=icon_photo, bg="#212121")
-        icon_label.image = icon_photo  # Keep a reference to prevent garbage collection
-        icon_label.place(x=10, y=50)
+        self.icon_label = tk.Label(frame, image=icon_photo, bg="#212121")
+        self.icon_label.image = icon_photo  # Keep a reference to prevent garbage collection
+        self.icon_label.place(x=10, y=50)
 
         # Error message label
-        message_label = ctk.CTkLabel(
+        self.message_label = ctk.CTkLabel(
             frame,
             text=self.text_body,
             font=("Helvetica", 20, "bold"),
             text_color=MAP_COLOR[self.type_notify.value],
         )
-        message_label.pack(anchor="n", padx=0, pady=10)
+        self.message_label.pack(anchor="n", padx=0, pady=10)
 
         # Close button
         close_button = ctk.CTkButton(

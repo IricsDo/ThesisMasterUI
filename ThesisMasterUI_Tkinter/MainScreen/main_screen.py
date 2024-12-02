@@ -9,7 +9,9 @@ from NotifyScreen import notify_screen
 from NotifyScreen.notify_screen import TypeNotify
 from PIL import Image, ImageTk
 import os
-from MainScreen.components import CircleToCircle
+# from MainScreen.components import CircleToCircle
+from utils.exec_command import execute_command
+import subprocess
 
 class MainScreen(ctk.CTk):
     def __init__(self):
@@ -40,6 +42,8 @@ class MainScreen(ctk.CTk):
         self.circle4 = None
         self.circle5 = None
         self.circle6 = None
+        
+        self.is_process_done = False
 
         # configure grid layout (1x3)
         self.grid_columnconfigure(0, weight=1)
@@ -47,7 +51,8 @@ class MainScreen(ctk.CTk):
 
         self.create_in_out()
         self.create_setting()
-        self.create_status()
+        # self.create_status_detail()
+        self.create_status_common()
 
         self.windows = []
 
@@ -87,8 +92,11 @@ class MainScreen(ctk.CTk):
     def on_close(self):
         """Handle the event when the X button is pressed."""
         # Display a message or ignore the close event
-        messagebox.showinfo("Action Denied", "Can not close this window")
-        # self.close_sub_windows()
+        if self.is_process_starting:
+            messagebox.showinfo("Action Denied", "Process is running !!!")
+        else:
+            self.close_sub_windows()
+            self.destroy()
 
     def close_sub_windows(self):
         """Close all open windows."""
@@ -131,9 +139,7 @@ class MainScreen(ctk.CTk):
         self.out_entry = ctk.CTkEntry(
             self.in_out_frame, placeholder_text="This entry must not empty", font=self.main_font
         )
-        self.out_entry.grid(
-            row=1, column=0, columnspan=5, padx=2, pady=2, sticky="nsew"
-        )
+        self.out_entry.grid(row=1, column=0, columnspan=5, padx=2, pady=2, sticky="nsew")
         self.out_entry.configure(state="readonly")
 
         self.in_button = ctk.CTkButton(
@@ -269,122 +275,137 @@ class MainScreen(ctk.CTk):
         self.reset_button.grid(row=1, column=0, padx=2, pady=5, sticky="nsew")
 
         self.progress_bar = ctk.CTkProgressBar(
-            self.process_frame, orientation="horizontal", mode="indeterminate"
+            self.process_frame, orientation="horizontal", mode="indeterminate", progress_color="gray"
         )
-        self.progress_bar.configure(progress_color="gray")
         self.progress_bar.grid(row=2, column=0, padx=2, pady=30, sticky="nsew")
 
-    def create_status(self):
-        # create status frame with widgets
+    def create_status_common(self):
         self.status_frame = ctk.CTkFrame(self, height=106, corner_radius=0)
         self.status_frame.grid(row=2, column=0, padx=2, pady=2, sticky="ew")
-        self.status_frame.grid_columnconfigure(
-            (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), weight=1
-        )
+        self.status_frame.grid_columnconfigure((0), weight=1)
+        self.status_frame.grid_rowconfigure((0, 1), weight=1)
 
-        r_circle = 32
-        x_base = 48
-        height_base = 106
-        connection_line_distance = 110
+        self.status_process_bar = ctk.CTkProgressBar(
+            self.status_frame, orientation="horizontal", mode="indeterminate", progress_color="gray"
+        )
+        self.status_process_bar.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
 
-        self.canvas = ctk.CTkCanvas(
-            self.status_frame,
-            width=r_circle,
-            height=height_base,
-            highlightthickness=0,
-            bg="#2b2b2b",
+        self.status_label = ctk.CTkLabel(
+            self.status_frame, text="No process is running.", fg_color="transparent", font=self.main_font
         )
-        self.canvas.grid(row=0, column=0, columnspan=11, sticky="nsew")
+        self.status_label.grid(row=1, column=0, padx=2, pady=2, sticky="nsew")
 
-        color_text_in_circle = "black"
-        color_circle = "dimgray"
-        color_connection_line = "dimgray"
-        color_text_on_line = "dimgray"
+    # def create_status_detail(self):
+    #     # create status frame with widgets
+    #     self.status_frame = ctk.CTkFrame(self, height=106, corner_radius=0)
+    #     self.status_frame.grid(row=2, column=0, padx=2, pady=2, sticky="ew")
+    #     self.status_frame.grid_columnconfigure(
+    #         (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), weight=1
+    #     )
 
-        self.circle1 = CircleToCircle(
-            self.canvas, x=x_base, y=height_base / 2, r=r_circle, color=color_circle
-        )
-        self.circle2 = CircleToCircle(
-            self.canvas,
-            x=x_base + r_circle * 2 + connection_line_distance,
-            y=height_base / 2,
-            r=r_circle,
-            color=color_circle,
-        )
-        self.circle1.add_text("1", font=self.main_font, text_color=color_text_in_circle)
-        self.circle2.add_text("2", font=self.main_font, text_color=color_text_in_circle)
+    #     r_circle = 32
+    #     x_base = 48
+    #     height_base = 106
+    #     connection_line_distance = 110
 
-        self.circle1.draw_line_to(
-            self.circle2,
-            color=color_connection_line,
-            width=8,
-            label="Checking ...",
-            label_color=color_text_on_line,
-        )
+    #     self.canvas = ctk.CTkCanvas(
+    #         self.status_frame,
+    #         width=r_circle,
+    #         height=height_base,
+    #         highlightthickness=0,
+    #         bg="#2b2b2b",
+    #     )
+    #     self.canvas.grid(row=0, column=0, columnspan=11, sticky="nsew")
 
-        self.circle3 = CircleToCircle(
-            self.canvas,
-            x=x_base + r_circle * 4 + connection_line_distance * 2,
-            y=height_base / 2,
-            r=r_circle,
-            color=color_circle,
-        )
-        self.circle4 = CircleToCircle(
-            self.canvas,
-            x=x_base + r_circle * 6 + connection_line_distance * 3,
-            y=height_base / 2,
-            r=r_circle,
-            color=color_circle,
-        )
-        self.circle3.add_text("3", font=self.main_font, text_color=color_text_in_circle)
-        self.circle4.add_text("4", font=self.main_font, text_color=color_text_in_circle)
+    #     color_text_in_circle = "black"
+    #     color_circle = "dimgray"
+    #     color_connection_line = "dimgray"
+    #     color_text_on_line = "dimgray"
 
-        self.circle2.draw_line_to(
-            self.circle3,
-            color=color_connection_line,
-            width=8,
-            label="Scanning ...",
-            label_color=color_text_on_line,
-        )
-        self.circle3.draw_line_to(
-            self.circle4,
-            color=color_connection_line,
-            width=8,
-            label="Combining ...",
-            label_color=color_text_on_line,
-        )
+    #     self.circle1 = CircleToCircle(
+    #         self.canvas, x=x_base, y=height_base / 2, r=r_circle, color=color_circle
+    #     )
+    #     self.circle2 = CircleToCircle(
+    #         self.canvas,
+    #         x=x_base + r_circle * 2 + connection_line_distance,
+    #         y=height_base / 2,
+    #         r=r_circle,
+    #         color=color_circle,
+    #     )
+    #     self.circle1.add_text("1", font=self.main_font, text_color=color_text_in_circle)
+    #     self.circle2.add_text("2", font=self.main_font, text_color=color_text_in_circle)
 
-        self.circle5 = CircleToCircle(
-            self.canvas,
-            x=x_base + r_circle * 8 + connection_line_distance * 4,
-            y=height_base / 2,
-            r=r_circle,
-            color=color_circle,
-        )
-        self.circle6 = CircleToCircle(
-            self.canvas,
-            x=x_base + r_circle * 10 + connection_line_distance * 5,
-            y=height_base / 2,
-            r=r_circle,
-            color=color_circle,
-        )
-        self.circle5.add_text("5", font=self.main_font, text_color=color_text_in_circle)
-        self.circle6.add_text("6", font=self.main_font, text_color=color_text_in_circle)
+    #     self.circle1.draw_line_to(
+    #         self.circle2,
+    #         color=color_connection_line,
+    #         width=8,
+    #         label="Checking ...",
+    #         label_color=color_text_on_line,
+    #     )
 
-        self.circle4.draw_line_to(
-            self.circle5,
-            color=color_connection_line,
-            width=8,
-            label="Training ...",
-            label_color=color_text_on_line,
-        )
-        self.circle5.draw_line_to(
-            self.circle6,
-            color=color_connection_line,
-            width=8,
-            label="Evaluating ...",
-            label_color=color_text_on_line,
-        )
+    #     self.circle3 = CircleToCircle(
+    #         self.canvas,
+    #         x=x_base + r_circle * 4 + connection_line_distance * 2,
+    #         y=height_base / 2,
+    #         r=r_circle,
+    #         color=color_circle,
+    #     )
+    #     self.circle4 = CircleToCircle(
+    #         self.canvas,
+    #         x=x_base + r_circle * 6 + connection_line_distance * 3,
+    #         y=height_base / 2,
+    #         r=r_circle,
+    #         color=color_circle,
+    #     )
+    #     self.circle3.add_text("3", font=self.main_font, text_color=color_text_in_circle)
+    #     self.circle4.add_text("4", font=self.main_font, text_color=color_text_in_circle)
+
+    #     self.circle2.draw_line_to(
+    #         self.circle3,
+    #         color=color_connection_line,
+    #         width=8,
+    #         label="Scanning ...",
+    #         label_color=color_text_on_line,
+    #     )
+    #     self.circle3.draw_line_to(
+    #         self.circle4,
+    #         color=color_connection_line,
+    #         width=8,
+    #         label="Combining ...",
+    #         label_color=color_text_on_line,
+    #     )
+
+    #     self.circle5 = CircleToCircle(
+    #         self.canvas,
+    #         x=x_base + r_circle * 8 + connection_line_distance * 4,
+    #         y=height_base / 2,
+    #         r=r_circle,
+    #         color=color_circle,
+    #     )
+    #     self.circle6 = CircleToCircle(
+    #         self.canvas,
+    #         x=x_base + r_circle * 10 + connection_line_distance * 5,
+    #         y=height_base / 2,
+    #         r=r_circle,
+    #         color=color_circle,
+    #     )
+    #     self.circle5.add_text("5", font=self.main_font, text_color=color_text_in_circle)
+    #     self.circle6.add_text("6", font=self.main_font, text_color=color_text_in_circle)
+
+    #     self.circle4.draw_line_to(
+    #         self.circle5,
+    #         color=color_connection_line,
+    #         width=8,
+    #         label="Training ...",
+    #         label_color=color_text_on_line,
+    #     )
+    #     self.circle5.draw_line_to(
+    #         self.circle6,
+    #         color=color_connection_line,
+    #         width=8,
+    #         label="Evaluating ...",
+    #         label_color=color_text_on_line,
+    #     )
 
     def set_group_control(self, state_control : str, except_reset_button : bool = False, except_start_button : bool = False):
         self.in_button.configure(state=state_control)
@@ -426,7 +447,8 @@ class MainScreen(ctk.CTk):
 
         if not self.thread_phase1 and self.is_process_starting:
             self.stop_event.clear()
-            self.thread_phase1 = Thread(target=self.phase1_calling, daemon=True)
+            # self.thread_phase1 = Thread(target=self.phase1_calling_detail, daemon=True)
+            self.thread_phase1 = Thread(target=self.phase1_calling_common, daemon=True)
             self.thread_phase1.start()
         elif self.thread_phase1 and not self.is_process_starting:
             self.stop_thread()
@@ -443,43 +465,117 @@ class MainScreen(ctk.CTk):
         self.stop_event.set()
         self.check_thread_termination()
 
-    def phase1_calling(self):
+    def phase1_calling_common(self):
         self.progress_bar.configure(progress_color="aqua")
         self.progress_bar.start()
 
-        circles = [
-            self.circle1,
-            self.circle2,
-            self.circle3,
-            self.circle4,
-            self.circle5,
-            self.circle6,
-        ]
-        """Simulate a long-running task."""
-        for index, circle in enumerate(circles):
-            if self.stop_event.is_set():
-                break
+        self.status_process_bar.configure(mode = "determinate", progress_color="greenyellow")
+        self.status_label.configure(text= "Process is running 0%")
 
-            circle.set_color_circle("orange")
-            circle.set_color_line("orange")
-            circle.set_color_text_line("orange")
-
-            time.sleep(2)  # Simulate the task
-
-            circle.set_color_text_line("green")
-            circle.set_color_circle("green")
-            circle.set_color_line("green")
+        self.is_process_done = False
 
 
-            self.after(0, self.log_screen.add_log, "Example \n")
+
+        # self.after(0, lambda value=index / 100: self.status_process_bar.set(value))    
+        # self.after(0, self.log_screen.add_log, "Example \n")
+        # self.after(0, lambda : self.status_label.configure(text= f"Process is running {index}%"))
+
+        command = "dir"
+        directory = "./"
+        process = subprocess.Popen(
+            command,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd= directory
+        )
+        try:
+            while True:
+                if self.stop_event.is_set():
+                    process.terminate()
+                    process.wait(timeout=10)
+                    break
+                
+                output = process.stdout.readline()
+                error = process.stderr.readline()
+
+                if process.poll() is not None:
+                    break
+
+                if output:
+                    print("Output:", output, end="")
+                if error:
+                    print("Error:", error, end="")
+
+            for remaining in process.stdout:
+                print("Output:", remaining, end="")
+            for remaining in process.stderr:
+                print("Error:", remaining, end="")
+
+        except subprocess.TimeoutExpired:
+            process.kill()  
+            process.wait()
+
+                # if index == 100:
+        finally:
+            self.is_process_done = True
+        
 
         self.progress_bar.stop()
         self.progress_bar.configure(progress_color="whitesmoke")
         self.thread_phase1 = None
-        self.notify_screen.show_window(text_body="This is example notify", type_notify= TypeNotify.ERROR)
+        if self.is_process_done:
+            self.notify_screen = None
+            self.notify_screen = notify_screen.NotifyScreen(self)
+            self.notify_screen.show_window(text_body="The process done", type_notify= TypeNotify.INFOR)
+            self.start_button.configure(state = "disabled")
+            self.toggle_start_button()
+        else: 
+            self.notify_screen = None
+            self.notify_screen = notify_screen.NotifyScreen(self)
+            self.notify_screen.show_window(text_body="The process stops unexpectedly", type_notify= TypeNotify.WARNING)
+
         self.reset_button.configure(state = "normal")
-        self.start_button.configure(state = "disabled")
-        self.toggle_start_button()
+        
+
+    # def phase1_calling_detail(self):
+    #     self.progress_bar.configure(progress_color="aqua")
+    #     self.progress_bar.start()
+
+    #     circles = [
+    #         self.circle1,
+    #         self.circle2,
+    #         self.circle3,
+    #         self.circle4,
+    #         self.circle5,
+    #         self.circle6,
+    #     ]
+    #     """Simulate a long-running task."""
+    #     for index, circle in enumerate(circles):
+    #         if self.stop_event.is_set():
+    #             break
+
+    #         circle.set_color_circle("orange")
+    #         circle.set_color_line("orange")
+    #         circle.set_color_text_line("orange")
+
+    #         time.sleep(2)  # Simulate the task
+
+    #         circle.set_color_text_line("green")
+    #         circle.set_color_circle("green")
+    #         circle.set_color_line("green")
+
+
+    #         self.after(0, self.log_screen.add_log, "Example \n")
+
+    #     self.progress_bar.stop()
+    #     self.progress_bar.configure(progress_color="whitesmoke")
+    #     self.thread_phase1 = None
+    #     self.notify_screen.show_window(text_body="This is example notify", type_notify= TypeNotify.ERROR)
+    #     self.reset_button.configure(state = "normal")
+    #     self.start_button.configure(state = "disabled")
+    #     self.toggle_start_button()
 
     def show_log_change(self):
         self.show_log.configure(text= "Log On" if self.show_log.get() else "Log Off", 
@@ -487,18 +583,20 @@ class MainScreen(ctk.CTk):
         self.log_screen.show_window() if self.show_log.get() else self.log_screen.hide_window()
 
     def reset_status(self):
-        circles = [
-            self.circle1,
-            self.circle2,
-            self.circle3,
-            self.circle4,
-            self.circle5,
-            self.circle6,
-        ]
-        for circle in circles: 
-            circle.set_color_circle("dimgray")
-            circle.set_color_line("dimgray")
-            circle.set_color_text_line("dimgray")
+        # circles = [
+        #     self.circle1,
+        #     self.circle2,
+        #     self.circle3,
+        #     self.circle4,
+        #     self.circle5,
+        #     self.circle6,
+        # ]
+        # for circle in circles: 
+        #     circle.set_color_circle("dimgray")
+        #     circle.set_color_line("dimgray")
+        #     circle.set_color_text_line("dimgray")
+        self.status_process_bar.configure(mode="indeterminate", progress_color = "gray")
+        self.status_label.configure(text= "No process is running.")
 
     def reset_app(self):
         self.reset_status()
