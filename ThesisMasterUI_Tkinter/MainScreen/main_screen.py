@@ -11,6 +11,7 @@ from PIL import Image, ImageTk
 import os
 # from MainScreen.components import CircleToCircle
 from utils.exec_command import execute_command
+from utils.extract_value import extract_value_from_log
 import subprocess
 
 class MainScreen(ctk.CTk):
@@ -49,7 +50,7 @@ class MainScreen(ctk.CTk):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure((0, 1, 2), weight=1)
 
-        self.create_in_out()
+        self.create_config_path()
         self.create_setting()
         # self.create_status_detail()
         self.create_status_common()
@@ -108,57 +109,79 @@ class MainScreen(ctk.CTk):
         directory_path = filedialog.askdirectory(
             title="Select a Directory",
         )
-        if directory_path:
-            print(f"Selected directory: {directory_path}")
+        if not directory_path:
+            raise Exception(f"Directory must be not None")
 
-        if identifier == "in":
-            self.in_entry.configure(state="normal")
-            self.in_entry.insert(0, directory_path)
-            self.in_entry.configure(state="readonly")
+        if identifier == "train":
+            self.train_path.configure(state="normal")
+            self.train_path.insert(0, directory_path)
+            self.train_path.configure(state="readonly")
 
-        elif identifier == "out":
-            self.out_entry.configure(state="normal")
-            self.out_entry.insert(0, directory_path)
-            self.out_entry.configure(state="readonly")
+        elif identifier == "result":
+            self.result_path.configure(state="normal")
+            self.result_path.insert(0, directory_path)
+            self.result_path.configure(state="readonly")
+
+        elif identifier == "predict":
+            self.predict_path.configure(state="normal")
+            self.predict_path.insert(0, directory_path)
+            self.predict_path.configure(state="readonly")
 
         else:
-            print(f"The identifier not vaild")
+            raise Exception(f"The identifier not vaild")
 
-    def create_in_out(self):
+    def create_config_path(self):
         # create in/out folder frame with widgets
-        self.in_out_frame = ctk.CTkFrame(self, height=75, corner_radius=0)
-        self.in_out_frame.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
-        self.in_out_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
+        self.config_path_frame = ctk.CTkFrame(self, height=75, corner_radius=0)
+        self.config_path_frame.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
+        self.config_path_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
+        self.config_path_frame.grid_rowconfigure((0, 1, 2), weight=1)
 
-        self.in_entry = ctk.CTkEntry(
-            self.in_out_frame, placeholder_text="This entry must not empty", font=self.main_font
+        self.train_path = ctk.CTkEntry(
+            self.config_path_frame, placeholder_text="Path to your training data (requirement)", font=self.main_font
         )
-        self.in_entry.grid(row=0, column=0, columnspan=5, padx=2, pady=2, sticky="nsew")
-        self.in_entry.configure(state="readonly")
+        self.train_path.grid(row=0, column=0, columnspan=5, padx=2, pady=2, sticky="nsew")
+        self.train_path.configure(state="readonly")
 
-        self.out_entry = ctk.CTkEntry(
-            self.in_out_frame, placeholder_text="This entry must not empty", font=self.main_font
+        self.result_path = ctk.CTkEntry(
+            self.config_path_frame, placeholder_text="Path to save your results (requirement)", font=self.main_font
         )
-        self.out_entry.grid(row=1, column=0, columnspan=5, padx=2, pady=2, sticky="nsew")
-        self.out_entry.configure(state="readonly")
+        self.result_path.grid(row=1, column=0, columnspan=5, padx=2, pady=2, sticky="nsew")
+        self.result_path.configure(state="readonly")
 
-        self.in_button = ctk.CTkButton(
-            self.in_out_frame,
+        
+        self.predict_path = ctk.CTkEntry(
+            self.config_path_frame, placeholder_text="Path to your predict data", font=self.main_font
+        )
+        self.predict_path.grid(row=2, column=0, columnspan=5, padx=2, pady=2, sticky="nsew")
+        self.predict_path.configure(state="readonly")
+
+        self.train_path_button = ctk.CTkButton(
+            self.config_path_frame,
             font=self.main_font,
             corner_radius=4,
-            text="Input Directory",
-            command=lambda: self.open_directory_dialog("in"),
+            text="Data path",
+            command=lambda: self.open_directory_dialog("train"),
         )
-        self.in_button.grid(row=0, column=5, padx=2, pady=2, sticky="nsew")
+        self.train_path_button.grid(row=0, column=5, padx=2, pady=2, sticky="nsew")
 
-        self.out_button = ctk.CTkButton(
-            self.in_out_frame,
+        self.result_path_button = ctk.CTkButton(
+            self.config_path_frame,
             font=self.main_font,
             corner_radius=4,
-            text="Output Directory",
-            command=lambda: self.open_directory_dialog("out"),
+            text="Result path",
+            command=lambda: self.open_directory_dialog("result"),
         )
-        self.out_button.grid(row=1, column=5, padx=2, pady=2, sticky="nsew")
+        self.result_path_button.grid(row=1, column=5, padx=2, pady=2, sticky="nsew")
+
+        self.predict_path_button = ctk.CTkButton(
+            self.config_path_frame,
+            font=self.main_font,
+            corner_radius=4,
+            text="Predict path",
+            command=lambda: self.open_directory_dialog("predict"),
+        )
+        self.predict_path_button.grid(row=2, column=5, padx=2, pady=2, sticky="nsew")
 
     def create_setting(self):
         # create setting frame with widgets
@@ -174,71 +197,85 @@ class MainScreen(ctk.CTk):
         self.para_frame.grid_rowconfigure((0, 1, 2, 3), weight=1)
 
         self.CTkLabel1 = ctk.CTkLabel(
-            self.para_frame, text="CTkLabel1", fg_color="transparent", font=self.main_font
+            self.para_frame, text="null", fg_color="transparent", font=self.main_font
         )
         self.CTkLabel1.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
         self.CTkLabel2 = ctk.CTkLabel(
-            self.para_frame, text="CTkLabel2", fg_color="transparent", font=self.main_font
+            self.para_frame, text="null", fg_color="transparent", font=self.main_font
         )
         self.CTkLabel2.grid(row=1, column=0, padx=2, pady=2, sticky="nsew")
         self.CTkLabel3 = ctk.CTkLabel(
-            self.para_frame, text="CTkLabel3", fg_color="transparent", font=self.main_font
+            self.para_frame, text="null", fg_color="transparent", font=self.main_font
         )
         self.CTkLabel3.grid(row=2, column=0, padx=2, pady=2, sticky="nsew")
         self.CTkLabel4 = ctk.CTkLabel(
-            self.para_frame, text="CTkLabel4", fg_color="transparent", font=self.main_font
+            self.para_frame, text="null", fg_color="transparent", font=self.main_font
         )
         self.CTkLabel4.grid(row=3, column=0, padx=2, pady=2, sticky="nsew")
 
-        self.CTkEntry1 = ctk.CTkEntry(self.para_frame, placeholder_text="CTkEntry1", font=self.main_font)
+        self.CTkEntry1 = ctk.CTkEntry(self.para_frame, font=self.main_font)
         self.CTkEntry1.grid(row=0, column=1, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry2 = ctk.CTkEntry(self.para_frame, placeholder_text="CTkEntry2", font=self.main_font)
+        self.CTkEntry1.configure(state="disable")
+
+        self.CTkEntry2 = ctk.CTkEntry(self.para_frame, font=self.main_font)
         self.CTkEntry2.grid(row=1, column=1, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry3 = ctk.CTkEntry(self.para_frame, placeholder_text="CTkEntry3", font=self.main_font)
+        self.CTkEntry2.configure(state="disable")
+
+        self.CTkEntry3 = ctk.CTkEntry(self.para_frame, font=self.main_font)
         self.CTkEntry3.grid(row=2, column=1, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry4 = ctk.CTkEntry(self.para_frame, placeholder_text="CTkEntry4", font=self.main_font)
+        self.CTkEntry3.configure(state="disable")
+
+        self.CTkEntry4 = ctk.CTkEntry(self.para_frame, font=self.main_font)
         self.CTkEntry4.grid(row=3, column=1, padx=2, pady=2, sticky="nsew")
+        self.CTkEntry4.configure(state="disable")
 
         self.CTkLabel5 = ctk.CTkLabel(
-            self.para_frame, text="CTkLabel5", fg_color="transparent", font=self.main_font
+            self.para_frame, text="null", fg_color="transparent", font=self.main_font
         )
         self.CTkLabel5.grid(row=0, column=2, padx=2, pady=2, sticky="nsew")
 
         self.CTkLabel6 = ctk.CTkLabel(
-            self.para_frame, text="CTkLabel6", fg_color="transparent", font=self.main_font
+            self.para_frame, text="null", fg_color="transparent", font=self.main_font
         )
         self.CTkLabel6.grid(row=1, column=2, padx=2, pady=2, sticky="nsew")
 
         self.CTkLabel7 = ctk.CTkLabel(
-            self.para_frame, text="CTkLabel7", fg_color="transparent", font=self.main_font
+            self.para_frame, text="null", fg_color="transparent", font=self.main_font
         )
         self.CTkLabel7.grid(row=2, column=2, padx=2, pady=2, sticky="nsew")
 
         self.CTkLabel8 = ctk.CTkLabel(
-            self.para_frame, text="CTkLabel8", fg_color="transparent", font=self.main_font
+            self.para_frame, text="null", fg_color="transparent", font=self.main_font
         )
         self.CTkLabel8.grid(row=3, column=2, padx=2, pady=2, sticky="nsew")
 
-        self.CTkEntry5 = ctk.CTkEntry(self.para_frame, placeholder_text="CTkEntry5", font=self.main_font)
+        self.CTkEntry5 = ctk.CTkEntry(self.para_frame, font=self.main_font)
         self.CTkEntry5.grid(row=0, column=3, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry6 = ctk.CTkEntry(self.para_frame, placeholder_text="CTkEntry6", font=self.main_font)
+        self.CTkEntry5.configure(state="disable")
+
+        self.CTkEntry6 = ctk.CTkEntry(self.para_frame, font=self.main_font)
         self.CTkEntry6.grid(row=1, column=3, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry7 = ctk.CTkEntry(self.para_frame, placeholder_text="CTkEntry7", font=self.main_font)
+        self.CTkEntry6.configure(state="disable")
+
+        self.CTkEntry7 = ctk.CTkEntry(self.para_frame, font=self.main_font)
         self.CTkEntry7.grid(row=2, column=3, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry8 = ctk.CTkEntry(self.para_frame, placeholder_text="CTkEntry8", font=self.main_font)
+        self.CTkEntry7.configure(state="disable")
+
+        self.CTkEntry8 = ctk.CTkEntry(self.para_frame, font=self.main_font)
         self.CTkEntry8.grid(row=3, column=3, padx=2, pady=2, sticky="nsew")
+        self.CTkEntry8.configure(state="disable")
 
         self.opt_frame = ctk.CTkFrame(self.setting_frame, height=120, corner_radius=0)
         self.opt_frame.grid(row=0, column=4, padx=2, pady=2, sticky="nsew")
         self.opt_frame.grid_rowconfigure((0, 1, 2, 4), weight=1)
 
-        self.CTkCheckBox1 = ctk.CTkCheckBox(self.opt_frame, text="CTkCheckBox1", font=self.main_font)
+        self.CTkCheckBox1 = ctk.CTkCheckBox(self.opt_frame, text="null", font=self.main_font)
         self.CTkCheckBox1.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
         self.CTkCheckBox1.grid_anchor = "center"
-        self.CTkCheckBox2 = ctk.CTkCheckBox(self.opt_frame, text="CTkCheckBox2", font=self.main_font)
+        self.CTkCheckBox2 = ctk.CTkCheckBox(self.opt_frame, text="null", font=self.main_font)
         self.CTkCheckBox2.grid(row=1, column=0, padx=2, pady=2, sticky="nsew")
         self.CTkCheckBox2.grid_anchor = "center"
-        self.CTkCheckBox3 = ctk.CTkCheckBox(self.opt_frame, text="CTkCheckBox3", font=self.main_font)
+        self.CTkCheckBox3 = ctk.CTkCheckBox(self.opt_frame, text="null", font=self.main_font)
         self.CTkCheckBox3.grid(row=2, column=0, padx=2, pady=2, sticky="nsew")
         self.CTkCheckBox3.grid_anchor = "center"
         self.show_log = ctk.CTkSwitch(self.opt_frame, text="Log Off", command= self.show_log_change,
@@ -274,10 +311,10 @@ class MainScreen(ctk.CTk):
         )
         self.reset_button.grid(row=1, column=0, padx=2, pady=5, sticky="nsew")
 
-        self.progress_bar = ctk.CTkProgressBar(
-            self.process_frame, orientation="horizontal", mode="indeterminate", progress_color="gray"
+        self.activate_progress_bar = ctk.CTkProgressBar(
+            self.process_frame, orientation="horizontal", mode="indeterminate", progress_color="whitesmoke"
         )
-        self.progress_bar.grid(row=2, column=0, padx=2, pady=30, sticky="nsew")
+        self.activate_progress_bar.grid(row=2, column=0, padx=2, pady=30, sticky="nsew")
 
     def create_status_common(self):
         self.status_frame = ctk.CTkFrame(self, height=106, corner_radius=0)
@@ -286,8 +323,9 @@ class MainScreen(ctk.CTk):
         self.status_frame.grid_rowconfigure((0, 1), weight=1)
 
         self.status_process_bar = ctk.CTkProgressBar(
-            self.status_frame, orientation="horizontal", mode="indeterminate", progress_color="gray"
+            self.status_frame, orientation="horizontal", mode="determinate", progress_color="whitesmoke"
         )
+        self.status_process_bar.set(0)
         self.status_process_bar.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
 
         self.status_label = ctk.CTkLabel(
@@ -407,9 +445,11 @@ class MainScreen(ctk.CTk):
     #         label_color=color_text_on_line,
     #     )
 
-    def set_group_control(self, state_control : str, except_reset_button : bool = False, except_start_button : bool = False):
-        self.in_button.configure(state=state_control)
-        self.out_button.configure(state=state_control)
+    def set_group_control(self, state_control : str, except_reset_button : bool = False, 
+                          except_start_button : bool = False):
+        self.train_path_button.configure(state=state_control)
+        self.result_path_button.configure(state=state_control)
+        self.predict_path_button.configure(state=state_control)
 
         self.CTkEntry1.configure(state=state_control)
         self.CTkEntry2.configure(state=state_control)
@@ -430,7 +470,7 @@ class MainScreen(ctk.CTk):
 
         if not except_start_button:
             self.start_button.configure(state=state_control)
-
+            
     def toggle_start_button(self):
         self.is_process_starting = not self.is_process_starting
 
@@ -465,30 +505,45 @@ class MainScreen(ctk.CTk):
         self.stop_event.set()
         self.check_thread_termination()
 
-    def phase1_calling_common(self):
-        self.progress_bar.configure(progress_color="aqua")
-        self.progress_bar.start()
+    def error_critical_handle(self):
+        self.is_process_starting = False
+        self.start_button.configure(text= "Start", state="disabled")
+        self.activate_progress_bar.stop()
+        self.activate_progress_bar.configure(progress_color="red", fg_color="red")
+        self.status_process_bar.set(100)
+        self.status_process_bar.configure(progress_color="red", fg_color="red")
+        self.status_label.configure(text= "Process is running 100%")
 
-        self.status_process_bar.configure(mode = "determinate", progress_color="greenyellow")
+    def phase1_calling_common(self):
+        self.activate_progress_bar.configure(progress_color="aqua")
+        self.activate_progress_bar.start()
+
+        self.status_process_bar.configure(progress_color="chartreuse")
+        self.status_process_bar.set(0)
         self.status_label.configure(text= "Process is running 0%")
 
         self.is_process_done = False
+        ws = os.environ['ROOT_WS_DUY']
+        current_percent_process = 0
+        if not ws:
+            self.notify_screen.show_window(text_body="Contact admin, has critical error.", type_notify= TypeNotify.ERROR)
+            self.error_critical_handle()
+            return
+        exe_file_path = os.path.join(ws, "ThesisMaster/scripts/run_script.sh")
+        if not os.path.isfile(exe_file_path):
+            self.notify_screen.show_window(text_body="Contact admin, has critical error.", type_notify= TypeNotify.ERROR)
+            self.error_critical_handle()
+            return
+        
+        command = f"""bash {exe_file_path} -i {self.train_path.get()} -o {self.result_path.get()}"""
 
-
-
-        # self.after(0, lambda value=index / 100: self.status_process_bar.set(value))    
-        # self.after(0, self.log_screen.add_log, "Example \n")
-        # self.after(0, lambda : self.status_label.configure(text= f"Process is running {index}%"))
-
-        command = "dir"
-        directory = "./"
         process = subprocess.Popen(
             command,
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            cwd= directory
+            cwd= ws
         )
         try:
             while True:
@@ -496,52 +551,70 @@ class MainScreen(ctk.CTk):
                     process.terminate()
                     process.wait(timeout=10)
                     break
-                
-                output = process.stdout.readline()
-                error = process.stderr.readline()
-
                 if process.poll() is not None:
                     break
 
+                output = process.stdout.readline()
+                error = process.stderr.readline()
+
                 if output:
-                    print("Output:", output, end="")
+                    self.after(0, self.log_screen.add_log, f"{output}")
+                    current_percent_process = self.update_process_status(output, current_percent_process)
+
                 if error:
-                    print("Error:", error, end="")
+                    self.after(0, self.log_screen.add_log, f"{error}")
+                    current_percent_process = self.update_process_status(output, current_percent_process)
 
             for remaining in process.stdout:
-                print("Output:", remaining, end="")
+                self.after(0, self.log_screen.add_log, f"{remaining}")
+                current_percent_process = self.update_process_status(output, current_percent_process)
+
+
             for remaining in process.stderr:
-                print("Error:", remaining, end="")
+                self.after(0, self.log_screen.add_log, f"{remaining}")
+                current_percent_process = self.update_process_status(output, current_percent_process)
 
         except subprocess.TimeoutExpired:
             process.kill()  
             process.wait()
 
-                # if index == 100:
-        finally:
-            self.is_process_done = True
+        self.is_process_done = True if current_percent_process == 100 else False
         
 
-        self.progress_bar.stop()
-        self.progress_bar.configure(progress_color="whitesmoke")
+        self.activate_progress_bar.stop()
         self.thread_phase1 = None
         if self.is_process_done:
+            self.after(0, lambda : self.status_process_bar.set(100))    
+            self.after(0, lambda : self.status_label.configure(text= f"Process is running {100}%"))
+
             self.notify_screen = None
             self.notify_screen = notify_screen.NotifyScreen(self)
             self.notify_screen.show_window(text_body="The process done", type_notify= TypeNotify.INFOR)
-            self.start_button.configure(state = "disabled")
-            self.toggle_start_button()
+            self.activate_progress_bar.configure(progress_color="whitesmoke")
+
         else: 
             self.notify_screen = None
             self.notify_screen = notify_screen.NotifyScreen(self)
             self.notify_screen.show_window(text_body="The process stops unexpectedly", type_notify= TypeNotify.WARNING)
+            self.activate_progress_bar.configure(progress_color= "yellow", fg_color="yellow")
+            self.status_process_bar.configure(progress_color= "yellow", fg_color="yellow")
 
+        self.toggle_start_button()
+        self.start_button.configure(state = "disabled")
         self.reset_button.configure(state = "normal")
         
+    def update_process_status(self, log: str, current_percent_process: int) -> int:
+            new_percent_process = extract_value_from_log(log)
+            if new_percent_process == -1:
+                new_percent_process = current_percent_process
+
+            self.after(0, lambda : self.status_process_bar.set(new_percent_process))    
+            self.after(0, lambda : self.status_label.configure(text= f"Process is running {new_percent_process}%"))
+
+            return new_percent_process
 
     # def phase1_calling_detail(self):
-    #     self.progress_bar.configure(progress_color="aqua")
-    #     self.progress_bar.start()
+    #     self.activate_progress_bar.configure(progress_color="aqua")
 
     #     circles = [
     #         self.circle1,
@@ -569,8 +642,8 @@ class MainScreen(ctk.CTk):
 
     #         self.after(0, self.log_screen.add_log, "Example \n")
 
-    #     self.progress_bar.stop()
-    #     self.progress_bar.configure(progress_color="whitesmoke")
+    #     self.activate_progress_bar.stop()
+    #     self.activate_progress_bar.configure(progress_color="whitesmoke")
     #     self.thread_phase1 = None
     #     self.notify_screen.show_window(text_body="This is example notify", type_notify= TypeNotify.ERROR)
     #     self.reset_button.configure(state = "normal")
@@ -595,22 +668,30 @@ class MainScreen(ctk.CTk):
         #     circle.set_color_circle("dimgray")
         #     circle.set_color_line("dimgray")
         #     circle.set_color_text_line("dimgray")
-        self.status_process_bar.configure(mode="indeterminate", progress_color = "gray")
+
+        self.status_process_bar.configure(progress_color = "whitesmoke", fg_color=ctk.ThemeManager.theme["CTkProgressBar"]["fg_color"])
+        self.activate_progress_bar.configure(progress_color= "whitesmoke", fg_color=ctk.ThemeManager.theme["CTkProgressBar"]["fg_color"])
+        self.status_process_bar.configure(progress_color= "whitesmoke", fg_color=ctk.ThemeManager.theme["CTkProgressBar"]["fg_color"])
+
+        self.status_process_bar.set(0)
+
         self.status_label.configure(text= "No process is running.")
 
     def reset_app(self):
         self.reset_status()
         self.set_group_control("normal")  
 
-        self.in_entry.configure(state="normal")
-        self.in_entry.delete(0, "end")
-        self.in_entry.focus()
-        self.in_entry.configure(state="readonly")
+        self.train_path.configure(state="normal")
+        self.train_path.delete(0, "end")
+        self.train_path.configure(placeholder_text="Path to your training data")
+        self.train_path.focus()
+        self.train_path.configure(state="readonly")
 
-        self.out_entry.configure(state="normal")
-        self.out_entry.delete(0, "end")
-        self.out_entry.focus()
-        self.out_entry.configure(state="readonly")
+        self.result_path.configure(state="normal")
+        self.result_path.delete(0, "end")
+        self.result_path.configure(placeholder_text="Path to save your results")
+        self.result_path.focus()
+        self.result_path.configure(state="readonly")
 
         self.CTkEntry1.delete(0, "end")
         self.CTkEntry2.delete(0, "end")
@@ -626,4 +707,5 @@ class MainScreen(ctk.CTk):
         self.CTkCheckBox3.deselect()
         self.show_log.deselect()
 
+        self.log_screen.clear_log()
         self.log_screen.hide_window()

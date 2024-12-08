@@ -60,7 +60,7 @@ class LoggerUI(ctk.CTkToplevel):
         self.textbox = ctk.CTkTextbox(
             self.main_frame, width=600, height=300, corner_radius=10
         )
-        self.textbox.configure(state="disabled")  # This makes the textbox read-only
+        self.textbox.configure(state="disabled", spacing1=2, spacing2=5, spacing3=2)  # This makes the textbox read-only
         self.textbox._textbox.configure(
             font=("Consolas", 14)
         )  # Use the `_textbox` attribute
@@ -70,7 +70,12 @@ class LoggerUI(ctk.CTkToplevel):
         """Add logs to the textbox."""
         self.textbox.configure(state="normal")
         self.textbox.insert("end", log_text)
-        self.textbox.configure(state="disabled", spacing1=2, spacing2=5, spacing3=2)
+        self.textbox.configure(state="disabled")
+
+    def clear_log(self):
+        self.textbox.configure(state="normal")
+        self.textbox.delete("1.0", "end")
+        self.textbox.configure(state="disabled")
 
     def hide_window(self):
         """Hide the window."""

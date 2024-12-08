@@ -104,11 +104,12 @@ class NotifyScreen(ctk.CTkToplevel):
         close_button.pack(side="right", padx=10, pady=10)
 
     def hide_window(self):
-        self.text_body = None
-        self.type_notify = None
+        if self.type_notify != TypeNotify.ERROR:
+            self.text_body = None
+            self.type_notify = None
 
-        """Hide the window."""
-        self.withdraw()  # Makes the window invisible
+            """Hide the window."""
+            self.withdraw()  # Makes the window invisible
 
     def show_window(self, text_body : str, type_notify : TypeNotify):
         self.set_content(text_body)
@@ -118,5 +119,6 @@ class NotifyScreen(ctk.CTkToplevel):
         self.deiconify()  # Makes the window visible
 
     def close_window(self):
-        """Quit the application."""
-        self.destroy()
+        if self.type_notify != TypeNotify.ERROR:
+            """Quit the application."""
+            self.destroy()
