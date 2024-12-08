@@ -2,7 +2,7 @@ import customtkinter as ctk
 from MainScreen import main_screen
 
 
-ctk.set_appearance_mode("System")
+ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
 if __name__ == "__main__":

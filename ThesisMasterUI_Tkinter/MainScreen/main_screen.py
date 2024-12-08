@@ -61,7 +61,7 @@ class MainScreen(ctk.CTk):
         self.log_screen.hide_window()
         self.notify_screen = notify_screen.NotifyScreen(self)
         self.notify_screen.hide_window()
-        
+
         self.windows.append(self.log_screen)
         self.windows.append(self.notify_screen)
 
@@ -114,16 +114,19 @@ class MainScreen(ctk.CTk):
 
         if identifier == "train":
             self.train_path.configure(state="normal")
+            self.train_path.delete(0, "end")
             self.train_path.insert(0, directory_path)
             self.train_path.configure(state="readonly")
 
         elif identifier == "result":
             self.result_path.configure(state="normal")
+            self.result_path.delete(0, "end")
             self.result_path.insert(0, directory_path)
             self.result_path.configure(state="readonly")
 
         elif identifier == "predict":
             self.predict_path.configure(state="normal")
+            self.predict_path.delete(0, "end")
             self.predict_path.insert(0, directory_path)
             self.predict_path.configure(state="readonly")
 

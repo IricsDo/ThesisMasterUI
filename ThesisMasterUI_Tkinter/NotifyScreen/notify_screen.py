@@ -21,7 +21,7 @@ class NotifyScreen(ctk.CTkToplevel):
         super().__init__(parent)
 
         self.text_body = None
-        self.type_notify = None
+        self.type_notify = TypeNotify.INFOR
 
         # Create the main window
         self.title("Notification")

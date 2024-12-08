@@ -30,6 +30,8 @@ class LoggerUI(ctk.CTkToplevel):
         self.resizable(False, False)
         self.overrideredirect(True)
         self.attributes("-topmost", True)
+        self.hide_window()
+
 
     def set_icon(self, icon_photo):
         self.icon_photo = icon_photo
