@@ -28,7 +28,7 @@ class LoggerUI(ctk.CTkToplevel):
         self.build_ui()
 
         self.resizable(False, False)
-        self.overrideredirect(True)
+        # self.overrideredirect(True)
         self.attributes("-topmost", True)
         self.hide_window()
 

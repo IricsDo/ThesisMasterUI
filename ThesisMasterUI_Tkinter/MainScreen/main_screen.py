@@ -109,8 +109,8 @@ class MainScreen(ctk.CTk):
         directory_path = filedialog.askdirectory(
             title="Select a Directory",
         )
-        if not directory_path:
-            raise Exception(f"Directory must be not None")
+        if not directory_path and identifier != "predict":
+            print(f"Directory must be not None")
 
         if identifier == "train":
             self.train_path.configure(state="normal")
@@ -131,7 +131,7 @@ class MainScreen(ctk.CTk):
             self.predict_path.configure(state="readonly")
 
         else:
-            raise Exception(f"The identifier not vaild")
+            print(f"The identifier not vaild")
 
     def create_config_path(self):
         # create in/out folder frame with widgets
@@ -538,50 +538,54 @@ class MainScreen(ctk.CTk):
             self.error_critical_handle()
             return
         
-        command = f"""bash {exe_file_path} -i {self.train_path.get()} -o {self.result_path.get()}"""
+        if not self.train_path.get() or not self.result_path.get():
+            self.notify_screen.show_window(text_body="The path of train and result must not empty", type_notify= TypeNotify.WARNING)
+        else: 
+            command = f"""bash {exe_file_path} -i {self.train_path.get()} -o {self.result_path.get()}"""
 
-        process = subprocess.Popen(
-            command,
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            cwd= ws
-        )
-        try:
-            while True:
-                if self.stop_event.is_set():
-                    process.terminate()
-                    process.wait(timeout=10)
-                    break
-                if process.poll() is not None:
-                    break
+            process = subprocess.Popen(
+                command,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                cwd= ws,
+                bufsize=1
+            )
+            try:
+                while True:
+                    if self.stop_event.is_set():
+                        process.terminate()
+                        process.wait(timeout=10)
+                        break
+                    if process.poll() is not None:
+                        break
 
-                output = process.stdout.readline()
-                error = process.stderr.readline()
+                    output = process.stdout.readline()
+                    error = process.stderr.readline()
 
-                if output:
-                    self.after(0, self.log_screen.add_log, f"{output}")
+                    if output:
+                        self.after(0, self.log_screen.add_log, f"{output}")
+                        current_percent_process = self.update_process_status(output, current_percent_process)
+
+                    if error:
+                        self.after(0, self.log_screen.add_log, f"{error}")
+                        current_percent_process = self.update_process_status(output, current_percent_process)
+
+                for remaining in process.stdout:
+                    self.after(0, self.log_screen.add_log, f"{remaining}")
                     current_percent_process = self.update_process_status(output, current_percent_process)
 
-                if error:
-                    self.after(0, self.log_screen.add_log, f"{error}")
+
+                for remaining in process.stderr:
+                    self.after(0, self.log_screen.add_log, f"{remaining}")
                     current_percent_process = self.update_process_status(output, current_percent_process)
 
-            for remaining in process.stdout:
-                self.after(0, self.log_screen.add_log, f"{remaining}")
-                current_percent_process = self.update_process_status(output, current_percent_process)
+            except subprocess.TimeoutExpired:
+                process.kill()  
+                process.wait()
 
-
-            for remaining in process.stderr:
-                self.after(0, self.log_screen.add_log, f"{remaining}")
-                current_percent_process = self.update_process_status(output, current_percent_process)
-
-        except subprocess.TimeoutExpired:
-            process.kill()  
-            process.wait()
-
-        self.is_process_done = True if current_percent_process == 100 else False
+            self.is_process_done = True if current_percent_process == 100 else False
         
 
         self.activate_progress_bar.stop()
