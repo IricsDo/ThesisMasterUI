@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 import os
 from enum import Enum
 
+from utils.show_log import print_with_timestep
 
 class TypeNotify(Enum):
     INFOR = 1
@@ -14,7 +15,7 @@ class TypeNotify(Enum):
 
 MAP_ICON = {1: "information.png", 2: "warning.png", 3: "error.png"}
 MAP_COLOR = {1: "blue", 2: "yellow", 3: "red"}
-
+MAP_STRING = {1: "information", 2: "warning", 3: "error"}
 
 class NotifyScreen(ctk.CTkToplevel):
     def __init__(self, parent):
@@ -112,6 +113,7 @@ class NotifyScreen(ctk.CTkToplevel):
             self.withdraw()  # Makes the window invisible
 
     def show_window(self, text_body : str, type_notify : TypeNotify):
+        print_with_timestep(f"Get notice with type {MAP_STRING[type_notify.value]} and content {text_body}")
         self.set_content(text_body)
         self.set_type(type_notify)
         self.create_screen()

@@ -12,6 +12,7 @@ import os
 # from MainScreen.components import CircleToCircle
 from utils.exec_command import execute_command
 from utils.extract_value import extract_value_from_log
+from utils.show_log import print_with_timestep
 import subprocess
 
 class MainScreen(ctk.CTk):
@@ -112,6 +113,9 @@ class MainScreen(ctk.CTk):
         if not directory_path and identifier != "predict":
             print(f"Directory must be not None")
 
+        print_with_timestep(f"Button {identifier} is clicked by the user")
+        print_with_timestep(f"Path {directory_path} selected by the user")
+
         if identifier == "train":
             self.train_path.configure(state="normal")
             self.train_path.delete(0, "end")
@@ -131,7 +135,7 @@ class MainScreen(ctk.CTk):
             self.predict_path.configure(state="readonly")
 
         else:
-            print(f"The identifier not vaild")
+            print_with_timestep(f"The identifier not vaild")
 
     def create_config_path(self):
         # create in/out folder frame with widgets
@@ -482,6 +486,7 @@ class MainScreen(ctk.CTk):
             text_color="red" if self.is_process_starting else "white",
         )
     def start_button_click(self):
+        print_with_timestep(f"Start button is clicked by the user, current state {self.is_process_starting}")
         self.toggle_start_button()
 
         commo_state = "disabled" if self.is_process_starting else "normal"
@@ -541,7 +546,7 @@ class MainScreen(ctk.CTk):
         if not self.train_path.get() or not self.result_path.get():
             self.notify_screen.show_window(text_body="The path of train and result must not empty", type_notify= TypeNotify.WARNING)
         else: 
-            command = f"""bash {exe_file_path} -i {self.train_path.get()} -o {self.result_path.get()}"""
+            command = f"""stdbuf -oL bash {exe_file_path} -i {self.train_path.get()} -o {self.result_path.get()}"""
 
             process = subprocess.Popen(
                 command,
@@ -565,29 +570,32 @@ class MainScreen(ctk.CTk):
                     error = process.stderr.readline()
 
                     if output:
-                        self.after(0, self.log_screen.add_log, f"{output}")
+                        self.after(0, self.log_screen.add_log, f"{output.strip()}")
                         current_percent_process = self.update_process_status(output, current_percent_process)
 
                     if error:
-                        self.after(0, self.log_screen.add_log, f"{error}")
+                        self.after(0, self.log_screen.add_log, f"{error.strip()}")
                         current_percent_process = self.update_process_status(output, current_percent_process)
 
                 for remaining in process.stdout:
-                    self.after(0, self.log_screen.add_log, f"{remaining}")
+                    self.after(0, self.log_screen.add_log, f"{remaining.strip()}")
                     current_percent_process = self.update_process_status(output, current_percent_process)
 
 
                 for remaining in process.stderr:
-                    self.after(0, self.log_screen.add_log, f"{remaining}")
+                    self.after(0, self.log_screen.add_log, f"{remaining.strip()}")
                     current_percent_process = self.update_process_status(output, current_percent_process)
 
+                print_with_timestep(f"Process is running ...")
             except subprocess.TimeoutExpired:
+                process.stdout.close()
+                process.stderr.close()
                 process.kill()  
                 process.wait()
 
             self.is_process_done = True if current_percent_process == 100 else False
         
-
+        print_with_timestep(f"Process stop")
         self.activate_progress_bar.stop()
         self.thread_phase1 = None
         if self.is_process_done:
@@ -658,6 +666,7 @@ class MainScreen(ctk.CTk):
     #     self.toggle_start_button()
 
     def show_log_change(self):
+        print_with_timestep(f"The log screen button is clicked by the user")
         self.show_log.configure(text= "Log On" if self.show_log.get() else "Log Off", 
                                 text_color = "aqua" if self.show_log.get() else "white")
         self.log_screen.show_window() if self.show_log.get() else self.log_screen.hide_window()
@@ -685,6 +694,8 @@ class MainScreen(ctk.CTk):
         self.status_label.configure(text= "No process is running.")
 
     def reset_app(self):
+        print_with_timestep(f"Reset button is clicked by the user, current state {self.is_process_starting}")
+
         self.reset_status()
         self.set_group_control("normal")  
 

@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from tkinter import messagebox
-
+from utils.show_log import print_with_timestep
 
 
 class LoggerUI(ctk.CTkToplevel):
