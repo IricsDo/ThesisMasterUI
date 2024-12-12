@@ -72,6 +72,7 @@ class LoggerUI(ctk.CTkToplevel):
         """Add logs to the textbox."""
         self.textbox.configure(state="normal")
         self.textbox.insert("end", log_text)
+        self.textbox.see("end")
         self.textbox.configure(state="disabled")
 
     def clear_log(self):

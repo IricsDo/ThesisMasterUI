@@ -14,6 +14,7 @@ from utils.exec_command import execute_command
 from utils.extract_value import extract_value_from_log
 from utils.show_log import print_with_timestep
 import subprocess
+import psutil
 
 class MainScreen(ctk.CTk):
     def __init__(self):
@@ -46,7 +47,7 @@ class MainScreen(ctk.CTk):
         self.circle6 = None
         
         self.is_process_done = False
-
+        self.current_percent_process = 0
         # configure grid layout (1x3)
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure((0, 1, 2), weight=1)
@@ -332,7 +333,7 @@ class MainScreen(ctk.CTk):
         self.status_process_bar = ctk.CTkProgressBar(
             self.status_frame, orientation="horizontal", mode="determinate", progress_color="whitesmoke"
         )
-        self.status_process_bar.set(0)
+        self.status_process_bar.set(0.0)
         self.status_process_bar.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
 
         self.status_label = ctk.CTkLabel(
@@ -518,21 +519,35 @@ class MainScreen(ctk.CTk):
         self.start_button.configure(text= "Start", state="disabled")
         self.activate_progress_bar.stop()
         self.activate_progress_bar.configure(progress_color="red", fg_color="red")
-        self.status_process_bar.set(100)
+        self.status_process_bar.set(1.0)
         self.status_process_bar.configure(progress_color="red", fg_color="red")
         self.status_label.configure(text= "Process is running 100%")
+
+    def stream_output(self, stream, callback):
+        """Reads output from a stream line-by-line and passes each line to a callback."""
+        while True:
+            time.sleep(0.01)
+            line = stream.readline()
+            if not line:  # End of stream
+                break
+            callback(line.strip())
+
+    def handle_output(self, output_line):
+        if output_line:
+            self.after(100, self.log_screen.add_log, output_line)  # Update the log screen
+            self.current_percent_process = self.update_process_status(output_line, self.current_percent_process)  # Update progress
 
     def phase1_calling_common(self):
         self.activate_progress_bar.configure(progress_color="aqua")
         self.activate_progress_bar.start()
 
         self.status_process_bar.configure(progress_color="chartreuse")
-        self.status_process_bar.set(0)
+        self.status_process_bar.set(0.0)
         self.status_label.configure(text= "Process is running 0%")
 
         self.is_process_done = False
         ws = os.environ['ROOT_WS_DUY']
-        current_percent_process = 0
+        self.current_percent_process = 0
         if not ws:
             self.notify_screen.show_window(text_body="Contact admin, has critical error.", type_notify= TypeNotify.ERROR)
             self.error_critical_handle()
@@ -557,49 +572,65 @@ class MainScreen(ctk.CTk):
                 cwd= ws,
                 bufsize=1
             )
+
+            proc = psutil.Process(process.pid)
+
+            stop_event = Event()
+
+
+            stdout_thread = Thread(target=self.stream_output, args=(stop_event, process.stdout, self.handle_output))
+            stderr_thread = Thread(target=self.stream_output, args=(stop_event, process.stderr, self.handle_output))
+            stdout_thread.start()
+            stderr_thread.start()
+
+
             try:
                 while True:
+                    print_with_timestep(f"Process is running ...")
+
                     if self.stop_event.is_set():
+                        stop_event.set()    
+                        stdout_thread.join(timeout=2)
+                        stderr_thread.join(timeout=2)
+                        print_with_timestep(f"Process is stopping ...")
+                        for child in proc.children(recursive=True):
+                            child.kill()
+                        proc.kill()
                         process.terminate()
-                        process.wait(timeout=10)
+                        process.wait(timeout=2)
+
                         break
                     if process.poll() is not None:
                         break
+                    if process.poll() is None:  # If the process is still running
+                        process.kill()  # Force kill the process
 
-                    output = process.stdout.readline()
-                    error = process.stderr.readline()
-
-                    if output:
-                        self.after(0, self.log_screen.add_log, f"{output.strip()}")
-                        current_percent_process = self.update_process_status(output, current_percent_process)
-
-                    if error:
-                        self.after(0, self.log_screen.add_log, f"{error.strip()}")
-                        current_percent_process = self.update_process_status(output, current_percent_process)
-
-                for remaining in process.stdout:
-                    self.after(0, self.log_screen.add_log, f"{remaining.strip()}")
-                    current_percent_process = self.update_process_status(output, current_percent_process)
+                # for remaining in process.stdout:
+                #     self.after(100, self.log_screen.add_log, f"{remaining.strip()}")
+                #     self.current_percent_process = self.update_process_status(remaining.strip(), self.current_percent_process)
 
 
-                for remaining in process.stderr:
-                    self.after(0, self.log_screen.add_log, f"{remaining.strip()}")
-                    current_percent_process = self.update_process_status(output, current_percent_process)
+                # for remaining in process.stderr:
+                #     self.after(100, self.log_screen.add_log, f"{remaining.strip()}")
+                #     self.current_percent_process = self.update_process_status(remaining.strip(), self.current_percent_process)
 
-                print_with_timestep(f"Process is running ...")
+                time.sleep(0.01)
             except subprocess.TimeoutExpired:
+                print_with_timestep(f"Process stop with timeout")
                 process.stdout.close()
                 process.stderr.close()
+                stdout_thread.join()
+                stderr_thread.join()
                 process.kill()  
                 process.wait()
 
-            self.is_process_done = True if current_percent_process == 100 else False
+            self.is_process_done = True if self.current_percent_process == 100 else False
         
-        print_with_timestep(f"Process stop")
+        print_with_timestep(f"Process stop with {self.current_percent_process}%")
         self.activate_progress_bar.stop()
         self.thread_phase1 = None
         if self.is_process_done:
-            self.after(0, lambda : self.status_process_bar.set(100))    
+            self.after(0, lambda : self.status_process_bar.set(1.0))    
             self.after(0, lambda : self.status_label.configure(text= f"Process is running {100}%"))
 
             self.notify_screen = None
@@ -623,7 +654,7 @@ class MainScreen(ctk.CTk):
             if new_percent_process == -1:
                 new_percent_process = current_percent_process
 
-            self.after(0, lambda : self.status_process_bar.set(new_percent_process))    
+            self.after(0, lambda : self.status_process_bar.set(new_percent_process / 100))    
             self.after(0, lambda : self.status_label.configure(text= f"Process is running {new_percent_process}%"))
 
             return new_percent_process
@@ -689,7 +720,7 @@ class MainScreen(ctk.CTk):
         self.activate_progress_bar.configure(progress_color= "whitesmoke", fg_color=ctk.ThemeManager.theme["CTkProgressBar"]["fg_color"])
         self.status_process_bar.configure(progress_color= "whitesmoke", fg_color=ctk.ThemeManager.theme["CTkProgressBar"]["fg_color"])
 
-        self.status_process_bar.set(0)
+        self.status_process_bar.set(0.0)
 
         self.status_label.configure(text= "No process is running.")
 

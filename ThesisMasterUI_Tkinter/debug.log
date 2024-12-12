@@ -1,0 +1,21 @@
+Exception in thread Thread-1 (phase1_calling_common):
+Traceback (most recent call last):
+  File "/home/hoanguyen/miniconda3/envs/thesis-master/lib/python3.10/threading.py", line 1016, in _bootstrap_inner
+    self.run()
+  File "/home/hoanguyen/miniconda3/envs/thesis-master/lib/python3.10/threading.py", line 953, in run
+    self._target(*self._args, **self._kwargs)
+  File "/media/hoanguyen/0AFECAD26E04553D/DoDuy-Working-Space/ThesisMasterUI/ThesisMasterUI_Tkinter/MainScreen/main_screen.py", line 547, in phase1_calling_common
+    ws = os.environ['ROOT_WS_DUY']
+  File "/home/hoanguyen/miniconda3/envs/thesis-master/lib/python3.10/os.py", line 680, in __getitem__
+    raise KeyError(key) from None
+KeyError: 'ROOT_WS_DUY'
+2024-12-12 20:21:19.027099 -> App initialize
+2024-12-12 20:21:20.298258 -> App start
+2024-12-12 20:21:27.758531 -> The log screen button is clicked by the user
+2024-12-12 20:21:47.699384 -> Button train is clicked by the user
+2024-12-12 20:21:47.699573 -> Path /media/hoanguyen/0AFECAD26E04553D/DoDuy-Working-Space/data_train selected by the user
+2024-12-12 20:21:53.976642 -> Button result is clicked by the user
+2024-12-12 20:21:53.976675 -> Path /media/hoanguyen/0AFECAD26E04553D/DoDuy-Working-Space/data_result selected by the user
+2024-12-12 20:21:58.986445 -> Start button is clicked by the user, current state False
+2024-12-12 20:22:57.071988 -> Start button is clicked by the user, current state True
+2024-12-12 20:23:13.066833 -> App Goodbye User <3!!

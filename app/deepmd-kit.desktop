@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=DeePMD-Kit
+Comment=This application is used to run the DeePMD-kit module.
+Exec=/home/hoanguyen/miniconda3/envs/thesis-master/bin/python /media/hoanguyen/0AFECAD26E04553D/DoDuy-Working-Space/ThesisMasterUI/ThesisMasterUI_Tkinter/app.py > debug.log 2>&1
+Icon=/media/hoanguyen/0AFECAD26E04553D/DoDuy-Working-Space/ThesisMasterUI/ThesisMasterUI_Tkinter/images/ai_128.png
+Path=/media/hoanguyen/0AFECAD26E04553D/DoDuy-Working-Space/ThesisMasterUI/ThesisMasterUI_Tkinter
+Terminal=false
+Categories=Development;Utility;Science;Education;
+GenericName=DeePMD
+StartupNotify=true
+Keywords=Python;DeePMD;MD;
+
