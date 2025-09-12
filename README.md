@@ -72,7 +72,7 @@ This will create (or recreate) a Conda environment named thesis-master from the 
 1. Clone the repository and navigate to the UI folder:  
    ```bash
    git clone https://github.com/IricsDo/ThesisMasterUI.git
-   cd ThesisMasterUI_Tkinter
+   cd ThesisMasterUI/ThesisMasterUI_Tkinter
    ```  
 2. Launch the UI:  
    ```bash
