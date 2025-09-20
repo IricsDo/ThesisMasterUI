@@ -16,6 +16,9 @@ from utils.show_log import print_with_timestep
 import subprocess
 import psutil
 
+DISABLED_COLOR = "#737373"
+ENABLED_COLOR = "#FFFFFF"
+
 class MainScreen(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -23,7 +26,7 @@ class MainScreen(ctk.CTk):
         # configure window
         self.title("Thesis Master UI")
         width = 780
-        height = 320
+        height = 480
         scaleFactor= 1.25
         screen_width = int(self.winfo_screenwidth() * scaleFactor)
         screen_height = self.winfo_screenheight()
@@ -39,19 +42,22 @@ class MainScreen(ctk.CTk):
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.thread_phase1 = None
-        self.circle1 = None
-        self.circle2 = None
-        self.circle3 = None
-        self.circle4 = None
-        self.circle5 = None
-        self.circle6 = None
+        # self.circle1 = None
+        # self.circle2 = None
+        # self.circle3 = None
+        # self.circle4 = None
+        # self.circle5 = None
+        # self.circle6 = None
         
         self.is_process_done = False
         self.current_percent_process = 0
-        # configure grid layout (1x3)
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure((0, 1, 2), weight=1)
 
+        # configure grid layout (1 col x 4 row)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=0) 
+        self.grid_rowconfigure((1, 2, 3), weight=1)
+
+        self.create_mode()
         self.create_config_path()
         self.create_setting()
         # self.create_status_detail()
@@ -137,22 +143,40 @@ class MainScreen(ctk.CTk):
 
         else:
             print_with_timestep(f"The identifier not vaild")
+            return
+        
+    def create_mode(self):
+        self.mode_frame = ctk.CTkFrame(self, height=32, corner_radius=0)
+        self.mode_frame.grid(row=0, column=0, padx=2, pady=2, sticky="ew")
+        self.mode_frame.grid_columnconfigure((0, 1), weight=1)
+        self.mode_frame.grid_rowconfigure((0), weight=1)
 
+        self.mode_var = tk.StringVar(value="")
+        self.mode_label = ctk.CTkLabel(self.mode_frame, text="Mode:", font=self.main_font)
+        self.mode_label.grid(row=0, column=0, sticky="se", padx=4, pady=4)
+
+        self.mode_menu = ctk.CTkComboBox(
+            self.mode_frame, values=["Init mode", "Train mode", "Create mode", "Predict mode"],
+            variable=self.mode_var, command=self.on_mode_change
+        )
+        self.mode_menu.grid(row=0, column=1, sticky="se", padx=4, pady=4)
+        self.mode_menu.set("Init mode")
+        
     def create_config_path(self):
         # create in/out folder frame with widgets
-        self.config_path_frame = ctk.CTkFrame(self, height=75, corner_radius=0)
-        self.config_path_frame.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
+        self.config_path_frame = ctk.CTkFrame(self, height=72, corner_radius=0)
+        self.config_path_frame.grid(row=1, column=0, padx=2, pady=2, sticky="nsew")
         self.config_path_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
-        self.config_path_frame.grid_rowconfigure((0, 1, 2), weight=1)
-
+        self.config_path_frame.grid_rowconfigure((0, 1, 2, 3, 4), weight=1)
+        
         self.train_path = ctk.CTkEntry(
-            self.config_path_frame, placeholder_text="Path to your training data (requirement)", font=self.main_font
+            self.config_path_frame, placeholder_text="Path to your training data", font=self.main_font
         )
         self.train_path.grid(row=0, column=0, columnspan=5, padx=2, pady=2, sticky="nsew")
         self.train_path.configure(state="readonly")
 
         self.result_path = ctk.CTkEntry(
-            self.config_path_frame, placeholder_text="Path to save your results (requirement)", font=self.main_font
+            self.config_path_frame, placeholder_text="Path to save your results", font=self.main_font
         )
         self.result_path.grid(row=1, column=0, columnspan=5, padx=2, pady=2, sticky="nsew")
         self.result_path.configure(state="readonly")
@@ -164,6 +188,19 @@ class MainScreen(ctk.CTk):
         self.predict_path.grid(row=2, column=0, columnspan=5, padx=2, pady=2, sticky="nsew")
         self.predict_path.configure(state="readonly")
 
+        
+        self.json_path = ctk.CTkEntry(
+            self.config_path_frame, placeholder_text="Path to your JSON config", font=self.main_font
+        )
+        self.json_path.grid(row=3, column=0, columnspan=5, padx=2, pady=2, sticky="nsew")
+        self.json_path.configure(state="readonly")
+        
+        self.model_path = ctk.CTkEntry(
+            self.config_path_frame, placeholder_text="Path to your model deep learning", font=self.main_font
+        )
+        self.model_path.grid(row=4, column=0, columnspan=5, padx=2, pady=2, sticky="nsew")
+        self.model_path.configure(state="readonly")
+        
         self.train_path_button = ctk.CTkButton(
             self.config_path_frame,
             font=self.main_font,
@@ -172,6 +209,7 @@ class MainScreen(ctk.CTk):
             command=lambda: self.open_directory_dialog("train"),
         )
         self.train_path_button.grid(row=0, column=5, padx=2, pady=2, sticky="nsew")
+        self.train_path_button.configure(state="disabled")
 
         self.result_path_button = ctk.CTkButton(
             self.config_path_frame,
@@ -181,6 +219,7 @@ class MainScreen(ctk.CTk):
             command=lambda: self.open_directory_dialog("result"),
         )
         self.result_path_button.grid(row=1, column=5, padx=2, pady=2, sticky="nsew")
+        self.result_path_button.configure(state="disabled")
 
         self.predict_path_button = ctk.CTkButton(
             self.config_path_frame,
@@ -190,112 +229,132 @@ class MainScreen(ctk.CTk):
             command=lambda: self.open_directory_dialog("predict"),
         )
         self.predict_path_button.grid(row=2, column=5, padx=2, pady=2, sticky="nsew")
+        self.predict_path_button.configure(state="disabled")
+
+        self.json_path_button = ctk.CTkButton(
+            self.config_path_frame,
+            font=self.main_font,
+            corner_radius=4,
+            text="Json path",
+            command=lambda: self.open_directory_dialog("json"),
+        )
+        self.json_path_button.grid(row=3, column=5, padx=2, pady=2, sticky="nsew")
+        self.json_path_button.configure(state="disabled")
+
+        self.model_path_button = ctk.CTkButton(
+            self.config_path_frame,
+            font=self.main_font,
+            corner_radius=4,
+            text="Model path",
+            command=lambda: self.open_directory_dialog("model"),
+        )
+        self.model_path_button.grid(row=4, column=5, padx=2, pady=2, sticky="nsew")
+        self.model_path_button.configure(state="disabled")
 
     def create_setting(self):
         # create setting frame with widgets
         self.setting_frame = ctk.CTkFrame(self, height=120, corner_radius=0)
-        self.setting_frame.grid(row=1, column=0, padx=2, pady=2, sticky="ew")
-        self.setting_frame.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
+        self.setting_frame.grid(row=2, column=0, padx=2, pady=2, sticky="ew")
+        self.setting_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
 
-        self.para_frame = ctk.CTkFrame(self.setting_frame, height=120, corner_radius=0)
-        self.para_frame.grid(
-            row=0, column=0, columnspan=4, padx=2, pady=2, sticky="nsew"
+
+        self.para_frame1 = ctk.CTkFrame(self.setting_frame, height=120, corner_radius=0)
+        self.para_frame1.grid(
+            row=0, column=0, padx=2, pady=2, sticky="nsew"
         )
-        self.para_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
-        self.para_frame.grid_rowconfigure((0, 1, 2, 3), weight=1)
+        self.para_frame1.grid_rowconfigure((0, 1, 2, 3), weight=1)
+        self.para_frame1.grid_columnconfigure((0, 1), weight=1)
 
-        self.CTkLabel1 = ctk.CTkLabel(
-            self.para_frame, text="null", fg_color="transparent", font=self.main_font
+        self.CTkLabel_noh = ctk.CTkLabel(
+            self.para_frame1, text="-noh", text_color=DISABLED_COLOR, fg_color="transparent", font=self.main_font
         )
-        self.CTkLabel1.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkLabel2 = ctk.CTkLabel(
-            self.para_frame, text="null", fg_color="transparent", font=self.main_font
+        self.CTkLabel_noh.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
+        self.CTkEntry_noh = ctk.CTkEntry(self.para_frame1, font=self.main_font)
+        self.CTkEntry_noh.grid(row=0, column=1, padx=2, pady=2, sticky="nsew")
+        self.CTkEntry_noh.configure(state="disable")
+
+        self.CTkLabel_mld = ctk.CTkLabel(
+            self.para_frame1, text="-mld", text_color=DISABLED_COLOR, fg_color="transparent", font=self.main_font
         )
-        self.CTkLabel2.grid(row=1, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkLabel3 = ctk.CTkLabel(
-            self.para_frame, text="null", fg_color="transparent", font=self.main_font
+        self.CTkLabel_mld.grid(row=1, column=0, padx=2, pady=2, sticky="nsew")
+        self.CTkEntry_mld = ctk.CTkEntry(self.para_frame1, font=self.main_font)
+        self.CTkEntry_mld.grid(row=1, column=1, padx=2, pady=2, sticky="nsew")
+        self.CTkEntry_mld.configure(state="disable")
+        
+
+        self.CTkLabel_e = ctk.CTkLabel(
+            self.para_frame1, text="-e", text_color=DISABLED_COLOR, fg_color="transparent", font=self.main_font
         )
-        self.CTkLabel3.grid(row=2, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkLabel4 = ctk.CTkLabel(
-            self.para_frame, text="null", fg_color="transparent", font=self.main_font
+        self.CTkLabel_e.grid(row=2, column=0, padx=2, pady=2, sticky="nsew")
+        self.CTkEntry_e = ctk.CTkEntry(self.para_frame1, font=self.main_font)
+        self.CTkEntry_e.grid(row=2, column=1, padx=2, pady=2, sticky="nsew")
+        self.CTkEntry_e.configure(state="disable")
+
+
+        self.para_frame2 = ctk.CTkFrame(self.setting_frame, height=120, corner_radius=0)
+        self.para_frame2.grid(
+            row=0, column=1, padx=2, pady=2, sticky="nsew"
         )
-        self.CTkLabel4.grid(row=3, column=0, padx=2, pady=2, sticky="nsew")
+        self.para_frame2.grid_rowconfigure((0, 1, 2, 3), weight=1)
+        
+        self.CTkCheckBox_pred_only = ctk.CTkCheckBox(self.para_frame2, text="-pred_only", font=self.main_font)
+        self.CTkCheckBox_pred_only.grid(row=0, column=1, padx=2, pady=2, sticky="nsew")
+        self.CTkCheckBox_pred_only.grid_anchor = "center"
+        self.CTkCheckBox_pred_only.configure(state="disabled")
 
-        self.CTkEntry1 = ctk.CTkEntry(self.para_frame, font=self.main_font)
-        self.CTkEntry1.grid(row=0, column=1, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry1.configure(state="disable")
+        self.CTkCheckBox_omd = ctk.CTkCheckBox(self.para_frame2, text="-omd", font=self.main_font)
+        self.CTkCheckBox_omd.grid(row=1, column=1, padx=2, pady=2, sticky="nsew")
+        self.CTkCheckBox_omd.grid_anchor = "center"
+        self.CTkCheckBox_omd.configure(state="disabled")
 
-        self.CTkEntry2 = ctk.CTkEntry(self.para_frame, font=self.main_font)
-        self.CTkEntry2.grid(row=1, column=1, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry2.configure(state="disable")
+        self.CTkCheckBox_sppd = ctk.CTkCheckBox(self.para_frame2, text="-sppd", font=self.main_font)
+        self.CTkCheckBox_sppd.grid(row=2, column=1, padx=2, pady=2, sticky="nsew")
+        self.CTkCheckBox_sppd.grid_anchor = "center"
+        self.CTkCheckBox_sppd.configure(state="disabled")
 
-        self.CTkEntry3 = ctk.CTkEntry(self.para_frame, font=self.main_font)
-        self.CTkEntry3.grid(row=2, column=1, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry3.configure(state="disable")
 
-        self.CTkEntry4 = ctk.CTkEntry(self.para_frame, font=self.main_font)
-        self.CTkEntry4.grid(row=3, column=1, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry4.configure(state="disable")
-
-        self.CTkLabel5 = ctk.CTkLabel(
-            self.para_frame, text="null", fg_color="transparent", font=self.main_font
+        self.para_frame3 = ctk.CTkFrame(self.setting_frame, height=120, corner_radius=0)
+        self.para_frame3.grid(
+            row=0, column=2, padx=2, pady=2, sticky="nsew"
         )
-        self.CTkLabel5.grid(row=0, column=2, padx=2, pady=2, sticky="nsew")
+        self.para_frame3.grid_rowconfigure((0, 1, 2, 3), weight=1)
 
-        self.CTkLabel6 = ctk.CTkLabel(
-            self.para_frame, text="null", fg_color="transparent", font=self.main_font
+        self.CTkCheckBox_pt = ctk.CTkCheckBox(self.para_frame3, text="-pt", font=self.main_font)
+        self.CTkCheckBox_pt.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
+        self.CTkCheckBox_pt.grid_anchor = "center"
+        self.CTkCheckBox_pt.configure(state="disabled")
+
+        self.CTkCheckBox_tf = ctk.CTkCheckBox(self.para_frame3, text="-tf", font=self.main_font)
+        self.CTkCheckBox_tf.grid(row=1, column=0, padx=2, pady=2, sticky="nsew")
+        self.CTkCheckBox_tf.grid_anchor = "center"
+        self.CTkCheckBox_tf.configure(state="disabled")
+
+        self.CTkCheckBox_lps1 = ctk.CTkCheckBox(self.para_frame3, text="-lps1", font=self.main_font)
+        self.CTkCheckBox_lps1.grid(row=2, column=0, padx=2, pady=2, sticky="nsew")
+        self.CTkCheckBox_lps1.grid_anchor = "center"
+        self.CTkCheckBox_lps1.configure(state="disabled")
+
+        self.CTkCheckBox_v = ctk.CTkCheckBox(self.para_frame3, text="-v", font=self.main_font)
+        self.CTkCheckBox_v.grid(row=3, column=0, padx=2, pady=2, sticky="nsew")
+        self.CTkCheckBox_v.grid_anchor = "center"
+        self.CTkCheckBox_v.configure(state="disabled")
+
+        self.para_frame4 = ctk.CTkFrame(self.setting_frame, height=120, corner_radius=0)
+        self.para_frame4.grid(
+            row=0, column=3, padx=2, pady=2, sticky="nsew"
         )
-        self.CTkLabel6.grid(row=1, column=2, padx=2, pady=2, sticky="nsew")
+        self.para_frame4.grid_columnconfigure((0), weight=1)
 
-        self.CTkLabel7 = ctk.CTkLabel(
-            self.para_frame, text="null", fg_color="transparent", font=self.main_font
-        )
-        self.CTkLabel7.grid(row=2, column=2, padx=2, pady=2, sticky="nsew")
-
-        self.CTkLabel8 = ctk.CTkLabel(
-            self.para_frame, text="null", fg_color="transparent", font=self.main_font
-        )
-        self.CTkLabel8.grid(row=3, column=2, padx=2, pady=2, sticky="nsew")
-
-        self.CTkEntry5 = ctk.CTkEntry(self.para_frame, font=self.main_font)
-        self.CTkEntry5.grid(row=0, column=3, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry5.configure(state="disable")
-
-        self.CTkEntry6 = ctk.CTkEntry(self.para_frame, font=self.main_font)
-        self.CTkEntry6.grid(row=1, column=3, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry6.configure(state="disable")
-
-        self.CTkEntry7 = ctk.CTkEntry(self.para_frame, font=self.main_font)
-        self.CTkEntry7.grid(row=2, column=3, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry7.configure(state="disable")
-
-        self.CTkEntry8 = ctk.CTkEntry(self.para_frame, font=self.main_font)
-        self.CTkEntry8.grid(row=3, column=3, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry8.configure(state="disable")
-
-        self.opt_frame = ctk.CTkFrame(self.setting_frame, height=120, corner_radius=0)
-        self.opt_frame.grid(row=0, column=4, padx=2, pady=2, sticky="nsew")
-        self.opt_frame.grid_rowconfigure((0, 1, 2, 4), weight=1)
-
-        self.CTkCheckBox1 = ctk.CTkCheckBox(self.opt_frame, text="null", font=self.main_font)
-        self.CTkCheckBox1.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkCheckBox1.grid_anchor = "center"
-        self.CTkCheckBox2 = ctk.CTkCheckBox(self.opt_frame, text="null", font=self.main_font)
-        self.CTkCheckBox2.grid(row=1, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkCheckBox2.grid_anchor = "center"
-        self.CTkCheckBox3 = ctk.CTkCheckBox(self.opt_frame, text="null", font=self.main_font)
-        self.CTkCheckBox3.grid(row=2, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkCheckBox3.grid_anchor = "center"
-        self.show_log = ctk.CTkSwitch(self.opt_frame, text="Log Off", command= self.show_log_change,
+        self.show_log = ctk.CTkSwitch(self.para_frame4, text="Log Off", command= self.show_log_change,
                                         font=self.main_font,
         )
-        self.show_log.grid(row=3, column=0, padx=2, pady=2, sticky="nsew")
+        self.show_log.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
         self.show_log.grid_anchor = "center"
 
         self.process_frame = ctk.CTkFrame(
             self.setting_frame, height=120, corner_radius=0
         )
-        self.process_frame.grid(row=0, column=5, padx=2, pady=2)
+        self.process_frame.grid(row=0, column=4, padx=2, pady=2)
         self.process_frame.grid_rowconfigure((0, 1, 2), weight=1)
 
         self.start_button = ctk.CTkButton(
@@ -306,9 +365,9 @@ class MainScreen(ctk.CTk):
             corner_radius=4,
             command=self.start_button_click,
         )
-        self.is_process_starting = False
-
+        self.start_button.configure(state="disabled")
         self.start_button.grid(row=0, column=0, padx=2, pady=5, sticky="nsew")
+        
         self.reset_button = ctk.CTkButton(
             self.process_frame,
             font=self.main_font,
@@ -318,15 +377,18 @@ class MainScreen(ctk.CTk):
             command=self.reset_app,
         )
         self.reset_button.grid(row=1, column=0, padx=2, pady=5, sticky="nsew")
+        self.reset_button.configure(state="disabled")
 
         self.activate_progress_bar = ctk.CTkProgressBar(
             self.process_frame, orientation="horizontal", mode="indeterminate", progress_color="whitesmoke"
         )
         self.activate_progress_bar.grid(row=2, column=0, padx=2, pady=30, sticky="nsew")
 
+        self.is_process_starting = False
+
     def create_status_common(self):
         self.status_frame = ctk.CTkFrame(self, height=106, corner_radius=0)
-        self.status_frame.grid(row=2, column=0, padx=2, pady=2, sticky="ew")
+        self.status_frame.grid(row=3, column=0, padx=2, pady=2, sticky="ew")
         self.status_frame.grid_columnconfigure((0), weight=1)
         self.status_frame.grid_rowconfigure((0, 1), weight=1)
 
@@ -758,3 +820,62 @@ class MainScreen(ctk.CTk):
 
         self.log_screen.clear_log()
         self.log_screen.hide_window()
+
+    def on_mode_change(self, mode) ->None:
+        init_mode = "disabled"
+        self.train_path_button.configure(state=init_mode)
+        self.result_path_button.configure(state=init_mode)
+        self.predict_path_button.configure(state=init_mode)
+        self.model_path_button.configure(state=init_mode)
+        self.json_path_button.configure(state=init_mode)
+        self.start_button.configure(state=init_mode)
+        self.reset_button.configure(state=init_mode)
+
+        self.CTkLabel_noh.configure(text_color=DISABLED_COLOR)
+        self.CTkEntry_noh.configure(state=init_mode)
+        self.CTkLabel_mld.configure(text_color=DISABLED_COLOR)
+        self.CTkEntry_mld.configure(state=init_mode)
+        self.CTkLabel_e.configure(text_color=DISABLED_COLOR)
+        self.CTkEntry_e.configure(state=init_mode)
+
+        self.CTkCheckBox_pred_only.configure(state=init_mode)
+        self.CTkCheckBox_omd.configure(state=init_mode)
+        self.CTkCheckBox_sppd.configure(state=init_mode)
+        
+        self.CTkCheckBox_pt.configure(state=init_mode) 
+        self.CTkCheckBox_tf.configure(state=init_mode)
+        self.CTkCheckBox_lps1.configure(state=init_mode)
+        self.CTkCheckBox_v.configure(state=init_mode)
+            
+        if mode == "Train mode":
+            train_mode = "normal"
+            self.train_path_button.configure(state=train_mode)
+            self.result_path_button.configure(state=train_mode)
+            self.predict_path_button.configure(state=train_mode)
+            self.json_path_button.configure(state=train_mode)
+            
+            self.CTkLabel_noh.configure(text_color=ENABLED_COLOR)
+            self.CTkEntry_noh.configure(state=train_mode)
+            self.CTkLabel_mld.configure(text_color=ENABLED_COLOR)
+            self.CTkEntry_mld.configure(state=train_mode)
+            self.CTkLabel_e.configure(text_color=ENABLED_COLOR)
+            self.CTkEntry_e.configure(state=train_mode)
+
+            self.CTkCheckBox_pt.configure(state=train_mode) 
+            self.CTkCheckBox_tf.configure(state=train_mode)
+            self.CTkCheckBox_lps1.configure(state=train_mode)
+            self.CTkCheckBox_v.configure(state=train_mode)
+            
+            self.start_button.configure(state=train_mode)
+            self.reset_button.configure(state=train_mode)
+
+            
+        elif mode == "Create mode":
+            create_mode = "disabled"
+            self.model_path_button.configure(state=create_mode)
+            self.CTkEntry_e.configure(state=create_mode)
+            self.CTkCheckBox_pred_only.configure(state=create_mode)
+            self.CTkCheckBox_omd.configure(state=create_mode)
+            self.CTkCheckBox_sppd.configure(state=create_mode)
+            self.CTkCheckBox_pt.configure(state=create_mode) 
+            self.CTkCheckBox_tf.configure(state=create_mode)
