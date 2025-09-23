@@ -10,7 +10,7 @@ from NotifyScreen.notify_screen import TypeNotify
 from PIL import Image, ImageTk
 import os
 # from MainScreen.components import CircleToCircle
-from utils.exec_command import execute_command
+# from utils.exec_command import execute_command
 from utils.extract_value import extract_value_from_log
 from utils.show_log import print_with_timestep
 import subprocess
@@ -113,37 +113,55 @@ class MainScreen(ctk.CTk):
             window.destroy()
         self.windows.clear()
 
-    def open_directory_dialog(self, identifier):
-        directory_path = filedialog.askdirectory(
-            title="Select a Directory",
+    def browse_file(self, identifier):
+        widget_map = {
+            "model": (self.model_path, [("Model", "*.pth *.pb"), ("All", "*.*")]),
+            "json": (self.json_path, [("JSON", "*.json"), ("All", "*.*")])
+        }
+
+        if identifier not in widget_map:
+            print_with_timestep("The identifier not valid")
+            return
+
+        widget, filetypes = widget_map[identifier]
+        file_path = filedialog.askopenfilename(
+            title=f"Select {identifier} file",
+            filetypes=filetypes
         )
-        if not directory_path and identifier != "predict":
-            print(f"Directory must be not None")
+
+        if file_path:
+            widget.configure(state="normal")
+            widget.delete(0, "end")
+            widget.insert(0, file_path)
+            widget.configure(state="readonly")
+        else:
+            print("Path must be not None")
+
+                
+    def browse_folder(self, identifier):
+        widget_map = {
+            "train": self.train_path,
+            "result": self.result_path,
+            "predict": self.predict_path,
+        }
+
+        directory_path = filedialog.askdirectory(title="Select a Directory")
+        if not directory_path:
+            print("Directory must be not None")
+            return
 
         print_with_timestep(f"Button {identifier} is clicked by the user")
         print_with_timestep(f"Path {directory_path} selected by the user")
 
-        if identifier == "train":
-            self.train_path.configure(state="normal")
-            self.train_path.delete(0, "end")
-            self.train_path.insert(0, directory_path)
-            self.train_path.configure(state="readonly")
-
-        elif identifier == "result":
-            self.result_path.configure(state="normal")
-            self.result_path.delete(0, "end")
-            self.result_path.insert(0, directory_path)
-            self.result_path.configure(state="readonly")
-
-        elif identifier == "predict":
-            self.predict_path.configure(state="normal")
-            self.predict_path.delete(0, "end")
-            self.predict_path.insert(0, directory_path)
-            self.predict_path.configure(state="readonly")
-
+        widget = widget_map.get(identifier)
+        if widget:
+            widget.configure(state="normal")
+            widget.delete(0, "end")
+            widget.insert(0, directory_path)
+            widget.configure(state="readonly")
         else:
-            print_with_timestep(f"The identifier not vaild")
-            return
+            print_with_timestep("The identifier not valid")
+
         
     def create_mode(self):
         self.mode_frame = ctk.CTkFrame(self, height=32, corner_radius=0)
@@ -151,16 +169,17 @@ class MainScreen(ctk.CTk):
         self.mode_frame.grid_columnconfigure((0, 1), weight=1)
         self.mode_frame.grid_rowconfigure((0), weight=1)
 
-        self.mode_var = tk.StringVar(value="")
+        self.current_mode_var = tk.StringVar(value="")
         self.mode_label = ctk.CTkLabel(self.mode_frame, text="Mode:", font=self.main_font)
         self.mode_label.grid(row=0, column=0, sticky="se", padx=4, pady=4)
 
         self.mode_menu = ctk.CTkComboBox(
             self.mode_frame, values=["Init mode", "Train mode", "Create mode", "Predict mode"],
-            variable=self.mode_var, command=self.on_mode_change
+            variable=self.current_mode_var, command=self.on_mode_change
         )
         self.mode_menu.grid(row=0, column=1, sticky="se", padx=4, pady=4)
         self.mode_menu.set("Init mode")
+        
         
     def create_config_path(self):
         # create in/out folder frame with widgets
@@ -206,7 +225,7 @@ class MainScreen(ctk.CTk):
             font=self.main_font,
             corner_radius=4,
             text="Data path",
-            command=lambda: self.open_directory_dialog("train"),
+            command=lambda: self.browse_folder("train"),
         )
         self.train_path_button.grid(row=0, column=5, padx=2, pady=2, sticky="nsew")
         self.train_path_button.configure(state="disabled")
@@ -216,7 +235,7 @@ class MainScreen(ctk.CTk):
             font=self.main_font,
             corner_radius=4,
             text="Result path",
-            command=lambda: self.open_directory_dialog("result"),
+            command=lambda: self.browse_folder("result"),
         )
         self.result_path_button.grid(row=1, column=5, padx=2, pady=2, sticky="nsew")
         self.result_path_button.configure(state="disabled")
@@ -226,7 +245,7 @@ class MainScreen(ctk.CTk):
             font=self.main_font,
             corner_radius=4,
             text="Predict path",
-            command=lambda: self.open_directory_dialog("predict"),
+            command=lambda: self.browse_folder("predict"),
         )
         self.predict_path_button.grid(row=2, column=5, padx=2, pady=2, sticky="nsew")
         self.predict_path_button.configure(state="disabled")
@@ -236,7 +255,7 @@ class MainScreen(ctk.CTk):
             font=self.main_font,
             corner_radius=4,
             text="Json path",
-            command=lambda: self.open_directory_dialog("json"),
+            command=lambda: self.browse_file("json"),
         )
         self.json_path_button.grid(row=3, column=5, padx=2, pady=2, sticky="nsew")
         self.json_path_button.configure(state="disabled")
@@ -246,7 +265,7 @@ class MainScreen(ctk.CTk):
             font=self.main_font,
             corner_radius=4,
             text="Model path",
-            command=lambda: self.open_directory_dialog("model"),
+            command=lambda: self.browse_file("model"),
         )
         self.model_path_button.grid(row=4, column=5, padx=2, pady=2, sticky="nsew")
         self.model_path_button.configure(state="disabled")
@@ -269,7 +288,7 @@ class MainScreen(ctk.CTk):
             self.para_frame1, text="-noh", text_color=DISABLED_COLOR, fg_color="transparent", font=self.main_font
         )
         self.CTkLabel_noh.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry_noh = ctk.CTkEntry(self.para_frame1, font=self.main_font)
+        self.CTkEntry_noh = ctk.CTkEntry(self.para_frame1, placeholder_text="Required, example: 4,10,29", font=("Arial", 10, "bold"))
         self.CTkEntry_noh.grid(row=0, column=1, padx=2, pady=2, sticky="nsew")
         self.CTkEntry_noh.configure(state="disable")
 
@@ -277,7 +296,7 @@ class MainScreen(ctk.CTk):
             self.para_frame1, text="-mld", text_color=DISABLED_COLOR, fg_color="transparent", font=self.main_font
         )
         self.CTkLabel_mld.grid(row=1, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry_mld = ctk.CTkEntry(self.para_frame1, font=self.main_font)
+        self.CTkEntry_mld = ctk.CTkEntry(self.para_frame1, placeholder_text="Optional, default: 0", font=("Arial", 10, "bold"))
         self.CTkEntry_mld.grid(row=1, column=1, padx=2, pady=2, sticky="nsew")
         self.CTkEntry_mld.configure(state="disable")
         
@@ -286,7 +305,7 @@ class MainScreen(ctk.CTk):
             self.para_frame1, text="-e", text_color=DISABLED_COLOR, fg_color="transparent", font=self.main_font
         )
         self.CTkLabel_e.grid(row=2, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkEntry_e = ctk.CTkEntry(self.para_frame1, font=self.main_font)
+        self.CTkEntry_e = ctk.CTkEntry(self.para_frame1, placeholder_text="Optional, default: 10000", font=("Arial", 10, "bold"))
         self.CTkEntry_e.grid(row=2, column=1, padx=2, pady=2, sticky="nsew")
         self.CTkEntry_e.configure(state="disable")
 
@@ -355,7 +374,7 @@ class MainScreen(ctk.CTk):
             self.setting_frame, height=120, corner_radius=0
         )
         self.process_frame.grid(row=0, column=4, padx=2, pady=2)
-        self.process_frame.grid_rowconfigure((0, 1, 2), weight=1)
+        self.process_frame.grid_rowconfigure((0, 1, 2), weight=0)
 
         self.start_button = ctk.CTkButton(
             self.process_frame,
@@ -368,13 +387,15 @@ class MainScreen(ctk.CTk):
         self.start_button.configure(state="disabled")
         self.start_button.grid(row=0, column=0, padx=2, pady=5, sticky="nsew")
         
+        self.reset_text = tk.StringVar()
+        self.reset_text.set(f"Reset: {self.current_mode_var.get()}")
         self.reset_button = ctk.CTkButton(
             self.process_frame,
             font=self.main_font,
-            text="Reset",
+            textvariable=self.reset_text,
             anchor="center",
             corner_radius=4,
-            command=self.reset_app,
+            command=self.reset_mode,
         )
         self.reset_button.grid(row=1, column=0, padx=2, pady=5, sticky="nsew")
         self.reset_button.configure(state="disabled")
@@ -516,23 +537,81 @@ class MainScreen(ctk.CTk):
     #     )
 
     def set_group_control(self, state_control : str, except_reset_button : bool = False, 
-                          except_start_button : bool = False):
-        self.train_path_button.configure(state=state_control)
-        self.result_path_button.configure(state=state_control)
-        self.predict_path_button.configure(state=state_control)
+                      except_start_button : bool = False):
+    
+        if self.current_mode_var.get() == "Train mode":
+            self.train_path_button.configure(state=state_control)
+            self.result_path_button.configure(state=state_control)
+            self.predict_path_button.configure(state=state_control)
+            self.json_path_button.configure(state=state_control)
 
-        self.CTkEntry1.configure(state=state_control)
-        self.CTkEntry2.configure(state=state_control)
-        self.CTkEntry3.configure(state=state_control)
-        self.CTkEntry4.configure(state=state_control)
-        self.CTkEntry5.configure(state=state_control)
-        self.CTkEntry6.configure(state=state_control)
-        self.CTkEntry7.configure(state=state_control)
-        self.CTkEntry8.configure(state=state_control)
+            self.train_path.configure(state="normal")
+            self.train_path.delete(0, "end")
+            self.train_path.configure(placeholder_text="Path to your training data")
+            self.train_path.configure(state="readonly")
+            
+            self.result_path.configure(state="normal")
+            self.result_path.delete(0, "end")
+            self.result_path.configure(placeholder_text="Path to save your results")
+            self.result_path.configure(state="readonly")
 
-        self.CTkCheckBox1.configure(state=state_control)
-        self.CTkCheckBox2.configure(state=state_control)
-        self.CTkCheckBox3.configure(state=state_control)
+            self.predict_path.configure(state="normal")
+            self.predict_path.delete(0, "end")
+            self.predict_path.configure(placeholder_text="Path to your predict data")
+            self.predict_path.configure(state="readonly")
+            
+            self.model_path.configure(state="normal")
+            self.model_path.delete(0, "end")
+            self.model_path.configure(placeholder_text="Path to your model deep learning")
+            self.model_path.configure(state="readonly")
+            
+            self.json_path.configure(state="normal")
+            self.json_path.delete(0, "end")
+            self.json_path.configure(placeholder_text="Path to your JSON config")
+            self.json_path.configure(state="readonly")
+            
+            self.CTkEntry_noh.delete(0, "end")
+            self.CTkEntry_noh.configure(placeholder_text="Required, example: 4,10,29")
+
+            self.CTkEntry_mld.delete(0, "end")
+            self.CTkEntry_mld.configure(placeholder_text="Optional, default: 0")
+
+            self.CTkEntry_e.delete(0, "end")
+            self.CTkEntry_e.configure(placeholder_text="Optional, default: 10000")
+
+            self.CTkCheckBox_pred_only.deselect()
+            self.CTkCheckBox_omd.deselect()
+            self.CTkCheckBox_sppd.deselect()
+            
+            self.CTkCheckBox_pt.deselect()
+            self.CTkCheckBox_tf.deselect()
+            self.CTkCheckBox_lps1.deselect()
+            self.CTkCheckBox_v.deselect()
+        elif self.current_mode_var.get() == "Create mode":
+            self.train_path_button.configure(state=state_control)
+            self.result_path_button.configure(state=state_control)
+
+            self.train_path.configure(state="normal")
+            self.train_path.delete(0, "end")
+            self.train_path.configure(placeholder_text="Path to your training data")
+            self.train_path.configure(state="readonly")
+            
+            self.result_path.configure(state="normal")
+            self.result_path.delete(0, "end")
+            self.result_path.configure(placeholder_text="Path to save your results")
+            self.result_path.configure(state="readonly")
+            
+            self.CTkEntry_noh.delete(0, "end")
+            self.CTkEntry_noh.configure(placeholder_text="Required, example: 4,10,29")
+
+            self.CTkEntry_mld.delete(0, "end")
+            self.CTkEntry_mld.configure(placeholder_text="Optional, default: 0")
+            
+            self.CTkCheckBox_omd.deselect()
+            
+            self.CTkCheckBox_lps1.deselect()
+            self.CTkCheckBox_v.deselect()
+
         self.show_log.configure(state=state_control)
 
         if not except_reset_button:
@@ -540,7 +619,9 @@ class MainScreen(ctk.CTk):
 
         if not except_start_button:
             self.start_button.configure(state=state_control)
-            
+        
+        self.focus()
+ 
     def toggle_start_button(self):
         self.is_process_starting = not self.is_process_starting
 
@@ -786,58 +867,78 @@ class MainScreen(ctk.CTk):
 
         self.status_label.configure(text= "No process is running.")
 
-    def reset_app(self):
+    def reset_mode(self):
         print_with_timestep(f"Reset button is clicked by the user, current state {self.is_process_starting}")
 
         self.reset_status()
         self.set_group_control("normal")  
 
-        self.train_path.configure(state="normal")
-        self.train_path.delete(0, "end")
-        self.train_path.configure(placeholder_text="Path to your training data")
-        self.train_path.focus()
-        self.train_path.configure(state="readonly")
-
-        self.result_path.configure(state="normal")
-        self.result_path.delete(0, "end")
-        self.result_path.configure(placeholder_text="Path to save your results")
-        self.result_path.focus()
-        self.result_path.configure(state="readonly")
-
-        self.CTkEntry1.delete(0, "end")
-        self.CTkEntry2.delete(0, "end")
-        self.CTkEntry3.delete(0, "end")
-        self.CTkEntry4.delete(0, "end")
-        self.CTkEntry5.delete(0, "end")
-        self.CTkEntry6.delete(0, "end")
-        self.CTkEntry7.delete(0, "end")
-        self.CTkEntry8.delete(0, "end")
-
-        self.CTkCheckBox1.deselect()
-        self.CTkCheckBox2.deselect()
-        self.CTkCheckBox3.deselect()
         self.show_log.deselect()
 
         self.log_screen.clear_log()
         self.log_screen.hide_window()
 
+    def update_reset_text(self, *args):
+        self.reset_text.set(f"Reset: {self.current_mode_var.get()}")
+
     def on_mode_change(self, mode) ->None:
+        self.reset_text.set(f"Reset: {self.current_mode_var.get()}")
+        
         init_mode = "disabled"
         self.train_path_button.configure(state=init_mode)
+        self.train_path.configure(state="normal")
+        self.train_path.delete(0, "end")
+        self.train_path.configure(placeholder_text="Path to your training data")
+        self.train_path.configure(state="readonly")
+        
         self.result_path_button.configure(state=init_mode)
+        self.result_path.configure(state="normal")
+        self.result_path.delete(0, "end")
+        self.result_path.configure(placeholder_text="Path to save your results")
+        self.result_path.configure(state="readonly")
+
         self.predict_path_button.configure(state=init_mode)
+        self.predict_path.configure(state="normal")
+        self.predict_path.delete(0, "end")
+        self.predict_path.configure(placeholder_text="Path to your predict data")
+        self.predict_path.configure(state="readonly")
+        
         self.model_path_button.configure(state=init_mode)
+        self.model_path.configure(state="normal")
+        self.model_path.delete(0, "end")
+        self.model_path.configure(placeholder_text="Path to your model deep learning")
+        self.model_path.configure(state="readonly")
+        
         self.json_path_button.configure(state=init_mode)
+        self.json_path.configure(state="normal")
+        self.json_path.delete(0, "end")
+        self.json_path.configure(placeholder_text="Path to your JSON config")
+        self.json_path.configure(state="readonly")
+        
         self.start_button.configure(state=init_mode)
         self.reset_button.configure(state=init_mode)
 
         self.CTkLabel_noh.configure(text_color=DISABLED_COLOR)
-        self.CTkEntry_noh.configure(state=init_mode)
+        self.CTkEntry_noh.delete(0, "end")
+        self.CTkEntry_noh.configure(placeholder_text="Required, example: 4,10,29")
+        
         self.CTkLabel_mld.configure(text_color=DISABLED_COLOR)
-        self.CTkEntry_mld.configure(state=init_mode)
-        self.CTkLabel_e.configure(text_color=DISABLED_COLOR)
-        self.CTkEntry_e.configure(state=init_mode)
+        self.CTkEntry_mld.delete(0, "end")
+        self.CTkEntry_mld.configure(placeholder_text="Optional, default: 0")
 
+        self.CTkLabel_e.configure(text_color=DISABLED_COLOR)
+        self.CTkEntry_e.delete(0, "end")
+        self.CTkEntry_e.configure(placeholder_text="Optional, default: 10000")
+
+        self.CTkCheckBox_pred_only.deselect()
+        self.CTkCheckBox_omd.deselect()
+        self.CTkCheckBox_sppd.deselect()
+        
+        self.CTkCheckBox_pt.deselect()
+        self.CTkCheckBox_tf.deselect()
+        self.CTkCheckBox_lps1.deselect()
+        self.CTkCheckBox_v.deselect()
+        
         self.CTkCheckBox_pred_only.configure(state=init_mode)
         self.CTkCheckBox_omd.configure(state=init_mode)
         self.CTkCheckBox_sppd.configure(state=init_mode)
@@ -871,11 +972,37 @@ class MainScreen(ctk.CTk):
 
             
         elif mode == "Create mode":
-            create_mode = "disabled"
-            self.model_path_button.configure(state=create_mode)
-            self.CTkEntry_e.configure(state=create_mode)
-            self.CTkCheckBox_pred_only.configure(state=create_mode)
+            create_mode = "normal"
+            self.train_path_button.configure(state=create_mode)
+            self.result_path_button.configure(state=create_mode)
+
+            self.CTkLabel_noh.configure(text_color=ENABLED_COLOR)
+            self.CTkEntry_noh.configure(state=create_mode)
+            self.CTkLabel_mld.configure(text_color=ENABLED_COLOR)
+            self.CTkEntry_mld.configure(state=create_mode)
+            
             self.CTkCheckBox_omd.configure(state=create_mode)
-            self.CTkCheckBox_sppd.configure(state=create_mode)
-            self.CTkCheckBox_pt.configure(state=create_mode) 
-            self.CTkCheckBox_tf.configure(state=create_mode)
+            
+            self.CTkCheckBox_lps1.configure(state=create_mode)
+            self.CTkCheckBox_v.configure(state=create_mode)
+
+            self.start_button.configure(state=create_mode)
+            self.reset_button.configure(state=create_mode)
+        
+        elif mode == "Predict mode":
+            predict_mode = "normal"
+            
+            self.predict_path_button.configure(state=predict_mode)
+            self.model_path_button.configure(state=predict_mode)
+
+            self.CTkCheckBox_pred_only.configure(state=predict_mode)
+            self.CTkCheckBox_sppd.configure(state=predict_mode)
+
+            self.CTkCheckBox_pt.configure(state=predict_mode) 
+            self.CTkCheckBox_tf.configure(state=predict_mode)
+            self.CTkCheckBox_v.configure(state=predict_mode)
+            
+            self.start_button.configure(state=predict_mode)
+            self.reset_button.configure(state=predict_mode)
+            
+        self.focus()
