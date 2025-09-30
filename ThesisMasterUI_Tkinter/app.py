@@ -17,5 +17,3 @@ if __name__ == "__main__":
         show_log.print_with_timestep(e)
     finally:
         show_log.print_with_timestep("App Goodbye User <3!!")
-
-

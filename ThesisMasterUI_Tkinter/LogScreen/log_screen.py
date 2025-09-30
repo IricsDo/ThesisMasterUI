@@ -12,12 +12,12 @@ class LoggerUI(ctk.CTkToplevel):
 
         width = 640
         height = 360
-        scaleFactor= 1.25
+        scaleFactor = 1.25
         screen_width = int(self.winfo_screenwidth() * scaleFactor)
 
         # Calculate position coordinates
         x = screen_width - width - 180
-        y = 0  
+        y = 0
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -32,11 +32,10 @@ class LoggerUI(ctk.CTkToplevel):
         self.attributes("-topmost", True)
         self.hide_window()
 
-
     def set_icon(self, icon_photo):
         self.icon_photo = icon_photo
         self.wm_iconbitmap()
-        self.after(300, lambda: self.iconphoto(False, self.icon_photo)) 
+        self.after(300, lambda: self.iconphoto(False, self.icon_photo))
 
     def on_close(self):
         """Handle the event when the X button is pressed."""
@@ -62,7 +61,9 @@ class LoggerUI(ctk.CTkToplevel):
         self.textbox = ctk.CTkTextbox(
             self.main_frame, width=600, height=300, corner_radius=10
         )
-        self.textbox.configure(state="disabled", spacing1=2, spacing2=5, spacing3=2)  # This makes the textbox read-only
+        self.textbox.configure(
+            state="disabled", spacing1=2, spacing2=5, spacing3=2
+        )  # This makes the textbox read-only
         self.textbox._textbox.configure(
             font=("Consolas", 14)
         )  # Use the `_textbox` attribute

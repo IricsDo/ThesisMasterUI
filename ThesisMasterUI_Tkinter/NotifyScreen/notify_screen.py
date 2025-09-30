@@ -6,6 +6,7 @@ from enum import Enum
 
 from utils.show_log import print_with_timestep
 
+
 class TypeNotify(Enum):
     INFOR = 1
     WARNING = 2
@@ -17,12 +18,13 @@ MAP_ICON = {1: "information.png", 2: "warning.png", 3: "error.png"}
 MAP_COLOR = {1: "blue", 2: "yellow", 3: "red"}
 MAP_STRING = {1: "information", 2: "warning", 3: "error"}
 
+
 class NotifyScreen(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
 
         self.text_body = None
-        self.text_name=None
+        self.text_name = None
         self.type_notify = TypeNotify.INFOR
 
         # Create the main window
@@ -31,7 +33,7 @@ class NotifyScreen(ctk.CTkToplevel):
 
         width = 450
         height = 150
-        scaleFactor= 1.25
+        scaleFactor = 1.25
         screen_width = int(self.winfo_screenwidth() * scaleFactor)
         screen_height = self.winfo_screenheight()
 
@@ -49,9 +51,9 @@ class NotifyScreen(ctk.CTkToplevel):
     def set_icon(self, icon_photo):
         self.icon_photo = icon_photo
         self.wm_iconbitmap()
-        self.after(300, lambda: self.iconphoto(False, self.icon_photo)) 
+        self.after(300, lambda: self.iconphoto(False, self.icon_photo))
 
-    def set_content(self, text_body : str):
+    def set_content(self, text_body: str):
         self.text_body = text_body
 
     def set_type(self, type_notify: TypeNotify):
@@ -59,7 +61,7 @@ class NotifyScreen(ctk.CTkToplevel):
 
     def set_text_btn(self, text_name: str):
         self.text_name = text_name
-        
+
     def create_screen(self):
         # Create a frame for the notification
         frame = ctk.CTkFrame(
@@ -84,7 +86,9 @@ class NotifyScreen(ctk.CTkToplevel):
         )
         icon_photo = ImageTk.PhotoImage(icon_image)
         self.icon_label = tk.Label(frame, image=icon_photo, bg="#212121")
-        self.icon_label.image = icon_photo  # Keep a reference to prevent garbage collection
+        self.icon_label.image = (
+            icon_photo  # Keep a reference to prevent garbage collection
+        )
         self.icon_label.place(x=10, y=50)
 
         # Error message label
@@ -115,18 +119,20 @@ class NotifyScreen(ctk.CTkToplevel):
 
             """Hide the window."""
             self.withdraw()  # Makes the window invisible
-        
-    def show_window(self, text_body : str, type_notify : TypeNotify):
-        print_with_timestep(f"Get notice with type {MAP_STRING[type_notify.value]} and content {text_body}")
+
+    def show_window(self, text_body: str, type_notify: TypeNotify):
+        print_with_timestep(
+            f"Get notice with type {MAP_STRING[type_notify.value]} and content {text_body}"
+        )
 
         self.set_content(text_body)
         self.set_type(type_notify)
-        
+
         if self.type_notify != TypeNotify.ERROR:
             self.set_text_btn("Close")
         else:
             self.set_text_btn("Report")
-            
+
         self.create_screen()
 
         """Show the window."""
@@ -139,4 +145,3 @@ class NotifyScreen(ctk.CTkToplevel):
         else:
             print_with_timestep(f"Report critical error to ADMIN! Quit the application")
             self.destroy()
-

@@ -86,4 +86,3 @@ class CircleToCircle:
     def set_color_text_line(self, color):
         if self.text_line:
             self.canvas.itemconfig(self.text_line, fill=color)
-

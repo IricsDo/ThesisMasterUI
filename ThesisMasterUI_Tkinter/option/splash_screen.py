@@ -7,6 +7,7 @@ from PIL import Image
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("dark-blue")
 
+
 class SplashScreen:
     def __init__(self, root):
         self.root = root
@@ -105,6 +106,7 @@ class SplashScreen:
         x = (win.winfo_screenwidth() // 2) - (width // 2)
         y = (win.winfo_screenheight() // 2) - (height // 2)
         win.geometry("{}x{}+{}+{}".format(width, height, x, y))
+
 
 if __name__ == "__main__":
     root = ctk.CTk(fg_color="#222")
