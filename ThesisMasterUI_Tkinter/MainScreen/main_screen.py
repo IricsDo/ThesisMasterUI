@@ -9,6 +9,7 @@ from NotifyScreen import notify_screen
 from NotifyScreen.notify_screen import TypeNotify
 from PIL import Image, ImageTk
 import os
+import re
 # from MainScreen.components import CircleToCircle
 # from utils.exec_command import execute_command
 from utils.extract_value import extract_value_from_log
@@ -173,12 +174,12 @@ class MainScreen(ctk.CTk):
         self.mode_label = ctk.CTkLabel(self.mode_frame, text="Mode:", font=self.main_font)
         self.mode_label.grid(row=0, column=0, sticky="se", padx=4, pady=4)
 
-        self.mode_menu = ctk.CTkComboBox(
+        self.mode_combobox = ctk.CTkComboBox(
             self.mode_frame, values=["Init mode", "Train mode", "Create mode", "Predict mode"],
-            variable=self.current_mode_var, command=self.on_mode_change
+            variable=self.current_mode_var, command=self.on_mode_change, font=self.main_font
         )
-        self.mode_menu.grid(row=0, column=1, sticky="se", padx=4, pady=4)
-        self.mode_menu.set("Init mode")
+        self.mode_combobox.grid(row=0, column=1, sticky="se", padx=4, pady=4)
+        self.mode_combobox.set("Init mode")
         
         
     def create_config_path(self):
@@ -338,15 +339,15 @@ class MainScreen(ctk.CTk):
         )
         self.para_frame3.grid_rowconfigure((0, 1, 2, 3), weight=1)
 
-        self.CTkCheckBox_pt = ctk.CTkCheckBox(self.para_frame3, text="-pt", font=self.main_font)
-        self.CTkCheckBox_pt.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkCheckBox_pt.grid_anchor = "center"
-        self.CTkCheckBox_pt.configure(state="disabled")
+        self.current_backend_var = ctk.StringVar(value="auto")  # default to auto
+        self.backend_combobox = ctk.CTkComboBox(self.para_frame3, 
+                values=["auto", "tensorflow", "pytorch"], 
+                variable=self.current_backend_var, font=self.main_font)
+        self.backend_combobox.set("auto")
 
-        self.CTkCheckBox_tf = ctk.CTkCheckBox(self.para_frame3, text="-tf", font=self.main_font)
-        self.CTkCheckBox_tf.grid(row=1, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkCheckBox_tf.grid_anchor = "center"
-        self.CTkCheckBox_tf.configure(state="disabled")
+        self.backend_combobox.grid(row=0, rowspan= 1, column=0, padx=2, pady=2, sticky="nsew")
+        self.backend_combobox.grid_anchor = "center"
+        self.backend_combobox.configure(state="disabled")
 
         self.CTkCheckBox_lps1 = ctk.CTkCheckBox(self.para_frame3, text="-lps1", font=self.main_font)
         self.CTkCheckBox_lps1.grid(row=2, column=0, padx=2, pady=2, sticky="nsew")
@@ -544,73 +545,35 @@ class MainScreen(ctk.CTk):
             self.result_path_button.configure(state=state_control)
             self.predict_path_button.configure(state=state_control)
             self.json_path_button.configure(state=state_control)
-
-            self.train_path.configure(state="normal")
-            self.train_path.delete(0, "end")
-            self.train_path.configure(placeholder_text="Path to your training data")
-            self.train_path.configure(state="readonly")
-            
-            self.result_path.configure(state="normal")
-            self.result_path.delete(0, "end")
-            self.result_path.configure(placeholder_text="Path to save your results")
-            self.result_path.configure(state="readonly")
-
-            self.predict_path.configure(state="normal")
-            self.predict_path.delete(0, "end")
-            self.predict_path.configure(placeholder_text="Path to your predict data")
-            self.predict_path.configure(state="readonly")
-            
-            self.model_path.configure(state="normal")
-            self.model_path.delete(0, "end")
-            self.model_path.configure(placeholder_text="Path to your model deep learning")
-            self.model_path.configure(state="readonly")
-            
-            self.json_path.configure(state="normal")
-            self.json_path.delete(0, "end")
-            self.json_path.configure(placeholder_text="Path to your JSON config")
-            self.json_path.configure(state="readonly")
-            
-            self.CTkEntry_noh.delete(0, "end")
-            self.CTkEntry_noh.configure(placeholder_text="Required, example: 4,10,29")
-
-            self.CTkEntry_mld.delete(0, "end")
-            self.CTkEntry_mld.configure(placeholder_text="Optional, default: 0")
-
-            self.CTkEntry_e.delete(0, "end")
-            self.CTkEntry_e.configure(placeholder_text="Optional, default: 10000")
-
-            self.CTkCheckBox_pred_only.deselect()
-            self.CTkCheckBox_omd.deselect()
-            self.CTkCheckBox_sppd.deselect()
-            
-            self.CTkCheckBox_pt.deselect()
-            self.CTkCheckBox_tf.deselect()
-            self.CTkCheckBox_lps1.deselect()
-            self.CTkCheckBox_v.deselect()
+        
+            self.CTkEntry_noh.configure(state=state_control)
+            self.CTkEntry_mld.configure(state=state_control)
+            self.CTkEntry_e.configure(state=state_control)
+                                    
+            self.backend_combobox.configure(state=state_control) 
+            self.CTkCheckBox_lps1.configure(state=state_control)
+            self.CTkCheckBox_v.configure(state=state_control)
+                
         elif self.current_mode_var.get() == "Create mode":
             self.train_path_button.configure(state=state_control)
             self.result_path_button.configure(state=state_control)
 
-            self.train_path.configure(state="normal")
-            self.train_path.delete(0, "end")
-            self.train_path.configure(placeholder_text="Path to your training data")
-            self.train_path.configure(state="readonly")
-            
-            self.result_path.configure(state="normal")
-            self.result_path.delete(0, "end")
-            self.result_path.configure(placeholder_text="Path to save your results")
-            self.result_path.configure(state="readonly")
-            
-            self.CTkEntry_noh.delete(0, "end")
-            self.CTkEntry_noh.configure(placeholder_text="Required, example: 4,10,29")
+            self.CTkEntry_noh.configure(state=state_control)
+            self.CTkEntry_mld.configure(state=state_control)
 
-            self.CTkEntry_mld.delete(0, "end")
-            self.CTkEntry_mld.configure(placeholder_text="Optional, default: 0")
+            self.CTkCheckBox_omd.configure(state=state_control)
+            self.CTkCheckBox_lps1.configure(state=state_control)
+            self.CTkCheckBox_v.configure(state=state_control)
             
-            self.CTkCheckBox_omd.deselect()
-            
-            self.CTkCheckBox_lps1.deselect()
-            self.CTkCheckBox_v.deselect()
+        elif self.current_mode_var.get() == "Predict mode":
+            self.predict_path_button.configure(state=state_control)
+            self.model_path_button.configure(state=state_control)
+
+            self.CTkCheckBox_pred_only.configure(state=state_control)
+            self.CTkCheckBox_sppd.configure(state=state_control)
+
+            self.backend_combobox.configure(state=state_control) 
+            self.CTkCheckBox_v.configure(state=state_control)
 
         self.show_log.configure(state=state_control)
 
@@ -632,11 +595,12 @@ class MainScreen(ctk.CTk):
     def start_button_click(self):
         print_with_timestep(f"Start button is clicked by the user, current state {self.is_process_starting}")
         self.toggle_start_button()
-
+        
         commo_state = "disabled" if self.is_process_starting else "normal"
 
         self.set_group_control(commo_state, except_start_button = True)  
-
+        self.phase1_calling_common()
+        
         if not self.thread_phase1 and self.is_process_starting:
             self.stop_event.clear()
             # self.thread_phase1 = Thread(target=self.phase1_calling_detail, daemon=True)
@@ -680,6 +644,180 @@ class MainScreen(ctk.CTk):
             self.after(100, self.log_screen.add_log, output_line)  # Update the log screen
             self.current_percent_process = self.update_process_status(output_line, self.current_percent_process)  # Update progress
 
+    def build_command_for_runner(self):
+        """
+        Build args for scripts/run_script.sh (without 'bash scripts/run_script.sh').
+        Mode:
+        - with -pred_only   => predict mode
+        - with -omd         => create/make-data mode
+        - otherwise         => train mode
+
+        Validation rules:
+        - Required strings per mode must be non-empty.
+        - number_of_h must match r"\d+(,\d+)*" (e.g., "4,10,19") and becomes "-noh 4 10 19".
+        - min_len_data, epochs_str (if provided) must be non-negative integers (>= 0).
+        """
+
+        # -------- Read UI values (direct/gọn) --------
+        train_dir    = self.train_path.get().strip()
+        result_dir   = self.result_path.get().strip()
+        predict_dir  = self.predict_path.get().strip()
+        model_path   = self.model_path.get().strip()
+        train_json   = self.json_path.get().strip()
+        number_of_h  = self.CTkEntry_noh.get().strip()
+        min_len_data = self.CTkEntry_mld.get().strip()
+        epochs_str   = self.CTkEntry_e.get().strip()
+
+        predict_only_flag    = self.CTkCheckBox_pred_only.get()
+        only_make_data_flag  = self.CTkCheckBox_omd.get()
+        skip_prepare_flag    = self.CTkCheckBox_sppd.get()
+        load_status_phase_1  = self.CTkCheckBox_lps1.get()
+        verbose_flag         = self.CTkCheckBox_v.get()
+        backend_choice       = self.current_backend_var.get().strip().lower()  # "auto"|"pytorch"|"tensorflow"
+
+        # -------- Small validators --------
+        def warn(msg):
+            self.notify_screen.show_window(text_body=msg, type_notify=TypeNotify.WARNING)
+
+        def is_nonneg_int(s: str) -> bool:
+            return s.isdigit() and int(s) >= 0
+
+        def validate_noh_format(noh: str) -> bool:
+            # strict "4,10,19" etc. (no spaces, only commas and digits)
+            import re
+            return bool(re.fullmatch(r"\d+(,\d+)*", noh))
+
+        # -------- Builder helpers --------
+        def add_noh_args(cmd, noh_str):
+            # noh_str must already be validated to r"\d+(,\d+)*"
+            parts = noh_str.split(",")
+            cmd += ["-noh"] + parts
+            return cmd
+
+        def add_common_flags(cmd):
+            # Optional integers >= 0
+            if min_len_data:
+                if not is_nonneg_int(min_len_data):
+                    warn("`min_len_data` must be a non-negative integer (e.g., 0,1,2,...)")
+                    return None
+                cmd += ["-mld", min_len_data]
+            if load_status_phase_1:
+                cmd.append("-lps1")
+            if verbose_flag:
+                cmd.append("-v")
+            return cmd
+
+        def add_backend_train_required(cmd):
+            # Train requires pytorch|tensorflow (not auto)
+            if backend_choice == "pytorch":
+                cmd.append("-pt")
+            elif backend_choice == "tensorflow":
+                cmd.append("-tf")
+            else:
+                warn("Training requires backend: choose PyTorch or TensorFlow (Auto is not allowed).")
+                return None
+            return cmd
+
+        def add_backend_predict_optional(cmd):
+            # Predict accepts auto/pytorch/tensorflow; auto => no flag
+            if backend_choice == "pytorch":
+                cmd.append("-pt")
+            elif backend_choice == "tensorflow":
+                cmd.append("-tf")
+            return cmd
+
+        # -------- Determine mode by flags --------
+        if predict_only_flag:
+            # =========== PREDICT MODE ===========
+            # Required strings
+            if not model_path:
+                warn("Predict mode requires `Model path`.")
+                return None
+            if not predict_dir:
+                warn("Predict mode requires `Predict folder`.")
+                return None
+
+            cmd = ["-pred_only", "-mp", model_path, "-p", predict_dir]
+            # Backend optional
+            cmd = add_backend_predict_optional(cmd)
+            # Optional flags
+            if skip_prepare_flag:
+                cmd.append("--skip_prepare_predict_data")
+            if verbose_flag:
+                cmd.append("-v")
+            return cmd
+
+        elif only_make_data_flag:
+            # =========== CREATE / MAKE-DATA MODE ===========
+            # Required strings
+            if not train_dir:
+                warn("Create mode requires `Train folder`.")
+                return None
+            if not result_dir:
+                warn("Create mode requires `Result folder`.")
+                return None
+            if not number_of_h:
+                warn("Create mode requires `Num of hidro (-noh)` in format like: 4,10,19.")
+                return None
+            if not validate_noh_format(number_of_h):
+                warn(f"Invalid -noh format: '{number_of_h}'. Use comma-separated numbers (e.g. 4,10,19).")
+                return None
+
+            cmd = ["-i", train_dir, "-o", result_dir, "-omd"]
+            cmd = add_noh_args(cmd, number_of_h)
+
+            # Optional: include training json if you want to pass it along
+            if train_json:
+                cmd += ["-trainj", train_json]
+
+            cmd = add_common_flags(cmd)
+            if cmd is None:
+                return None
+            return cmd
+
+        else:
+            # =========== TRAIN MODE (default) ===========
+            # Required strings
+            if not train_dir:
+                warn("Train mode requires `Train folder`.")
+                return None
+            if not result_dir:
+                warn("Train mode requires `Result folder`.")
+                return None
+            if not train_json:
+                warn("Train mode requires `Training JSON`.")
+                return None
+            if not number_of_h:
+                warn("Train mode requires `Num of hidro (-noh)` in format like: 4,10,19.")
+                return None
+            if not validate_noh_format(number_of_h):
+                warn(f"Invalid -noh format: '{number_of_h}'. Use comma-separated numbers (e.g. 4,10,19).")
+                return None
+
+            cmd = ["-i", train_dir, "-o", result_dir, "-trainj", train_json]
+            cmd = add_noh_args(cmd, number_of_h)
+
+            # Backend required for training
+            cmd = add_backend_train_required(cmd)
+            if cmd is None:
+                return None
+
+            # Optional epochs >= 0
+            if epochs_str:
+                if not is_nonneg_int(epochs_str):
+                    warn("`epochs` must be a non-negative integer (e.g., 0,1,2,...)")
+                    return None
+                cmd += ["-e", epochs_str]
+
+            # Optional predict folder during training
+            if predict_dir:
+                cmd += ["-p", predict_dir]
+
+            cmd = add_common_flags(cmd)
+            if cmd is None:
+                return None
+            return cmd
+
     def phase1_calling_common(self):
         self.activate_progress_bar.configure(progress_color="aqua")
         self.activate_progress_bar.start()
@@ -689,7 +827,12 @@ class MainScreen(ctk.CTk):
         self.status_label.configure(text= "Process is running 0%")
 
         self.is_process_done = False
-        ws = os.environ['ROOT_WS_DUY']
+        
+        cmd_args = self.build_command_for_runner()
+        if cmd_args is None:
+            return 
+
+        ws = os.environ.get("ROOT_WS_DUY", "")
         self.current_percent_process = 0
         if not ws:
             self.notify_screen.show_window(text_body="Contact admin, has critical error.", type_notify= TypeNotify.ERROR)
@@ -704,7 +847,8 @@ class MainScreen(ctk.CTk):
         if not self.train_path.get() or not self.result_path.get():
             self.notify_screen.show_window(text_body="The path of train and result must not empty", type_notify= TypeNotify.WARNING)
         else: 
-            command = f"""stdbuf -oL bash {exe_file_path} -i {self.train_path.get()} -o {self.result_path.get()}"""
+            
+            command = ["stdbuf", "-oL", "bash", exe_file_path] + cmd_args
 
             process = subprocess.Popen(
                 command,
@@ -871,12 +1015,104 @@ class MainScreen(ctk.CTk):
         print_with_timestep(f"Reset button is clicked by the user, current state {self.is_process_starting}")
 
         self.reset_status()
-        self.set_group_control("normal")  
+        if self.current_mode_var.get() == "Train mode":
+            self.train_path_button.configure(state="normal")
+            self.result_path_button.configure(state="normal")
+            self.predict_path_button.configure(state="normal")
+            self.json_path_button.configure(state="normal")
 
+
+            self.train_path.configure(state="normal")
+            self.train_path.delete(0, "end")
+            self.train_path.configure(placeholder_text="Path to your training data")
+            self.train_path.configure(state="readonly")
+            
+            self.result_path.configure(state="normal")
+            self.result_path.delete(0, "end")
+            self.result_path.configure(placeholder_text="Path to save your results")
+            self.result_path.configure(state="readonly")
+
+            self.predict_path.configure(state="normal")
+            self.predict_path.delete(0, "end")
+            self.predict_path.configure(placeholder_text="Path to your predict data")
+            self.predict_path.configure(state="readonly")
+            
+            self.model_path.configure(state="normal")
+            self.model_path.delete(0, "end")
+            self.model_path.configure(placeholder_text="Path to your model deep learning")
+            self.model_path.configure(state="readonly")
+            
+            self.json_path.configure(state="normal")
+            self.json_path.delete(0, "end")
+            self.json_path.configure(placeholder_text="Path to your JSON config")
+            self.json_path.configure(state="readonly")
+            
+            self.backend_combobox.set("tensorflow")
+            self.CTkCheckBox_lps1.deselect()
+            
+            self.CTkCheckBox_v.deselect()
+                
+            self.CTkEntry_noh.delete(0, "end")
+            self.CTkEntry_noh.configure(placeholder_text="Required, example: 4,10,29")
+
+            self.CTkEntry_mld.delete(0, "end")
+            self.CTkEntry_mld.configure(placeholder_text="Optional, default: 0")
+
+            self.CTkEntry_e.delete(0, "end")
+            self.CTkEntry_e.configure(placeholder_text="Optional, default: 10000")
+                    
+                
+        elif self.current_mode_var.get() == "Create mode":
+            self.train_path_button.configure(state="normal")
+            self.result_path_button.configure(state="normal")
+
+            self.train_path.configure(state="normal")
+            self.train_path.delete(0, "end")
+            self.train_path.configure(placeholder_text="Path to your training data")
+            self.train_path.configure(state="readonly")
+            
+            self.result_path.configure(state="normal")
+            self.result_path.delete(0, "end")
+            self.result_path.configure(placeholder_text="Path to save your results")
+            self.result_path.configure(state="readonly")
+            
+            self.CTkEntry_noh.delete(0, "end")
+            self.CTkEntry_noh.configure(placeholder_text="Required, example: 4,10,29")
+
+            self.CTkEntry_mld.delete(0, "end")
+            self.CTkEntry_mld.configure(placeholder_text="Optional, default: 0")
+            
+            self.CTkCheckBox_omd.deselect()
+            
+            self.CTkCheckBox_lps1.deselect()
+            self.CTkCheckBox_v.deselect()
+            
+        elif self.current_mode_var.get() == "Predict mode":
+            self.predict_path_button.configure(state="normal")
+            self.model_path_button.configure(state="normal")
+            
+            self.predict_path.configure(state="normal")
+            self.predict_path.delete(0, "end")
+            self.predict_path.configure(placeholder_text="Path to your predict data")
+            self.predict_path.configure(state="readonly")
+
+            self.model_path.configure(state="normal")
+            self.model_path.delete(0, "end")
+            self.model_path.configure(placeholder_text="Path to your model deep learning")
+            self.model_path.configure(state="readonly")
+
+            self.CTkCheckBox_pred_only.deselect()
+            self.CTkCheckBox_sppd.deselect()
+
+            self.backend_combobox.set("tensorflow")
+            self.CTkCheckBox_v.deselect()
+        
         self.show_log.deselect()
 
         self.log_screen.clear_log()
         self.log_screen.hide_window()
+
+        self.focus()
 
     def update_reset_text(self, *args):
         self.reset_text.set(f"Reset: {self.current_mode_var.get()}")
@@ -920,22 +1156,22 @@ class MainScreen(ctk.CTk):
 
         self.CTkLabel_noh.configure(text_color=DISABLED_COLOR)
         self.CTkEntry_noh.delete(0, "end")
-        self.CTkEntry_noh.configure(placeholder_text="Required, example: 4,10,29")
+        self.CTkEntry_noh.configure(state=init_mode,placeholder_text="Required, example: 4,10,29")
         
         self.CTkLabel_mld.configure(text_color=DISABLED_COLOR)
         self.CTkEntry_mld.delete(0, "end")
-        self.CTkEntry_mld.configure(placeholder_text="Optional, default: 0")
+        self.CTkEntry_mld.configure(state=init_mode,placeholder_text="Optional, default: 0")
 
         self.CTkLabel_e.configure(text_color=DISABLED_COLOR)
         self.CTkEntry_e.delete(0, "end")
-        self.CTkEntry_e.configure(placeholder_text="Optional, default: 10000")
+        self.CTkEntry_e.configure(state=init_mode, placeholder_text="Optional, default: 10000")
 
         self.CTkCheckBox_pred_only.deselect()
         self.CTkCheckBox_omd.deselect()
         self.CTkCheckBox_sppd.deselect()
         
-        self.CTkCheckBox_pt.deselect()
-        self.CTkCheckBox_tf.deselect()
+        self.backend_combobox.configure(values=["auto", "tensorflow", "pytorch"])
+        self.backend_combobox.set("auto")
         self.CTkCheckBox_lps1.deselect()
         self.CTkCheckBox_v.deselect()
         
@@ -943,8 +1179,7 @@ class MainScreen(ctk.CTk):
         self.CTkCheckBox_omd.configure(state=init_mode)
         self.CTkCheckBox_sppd.configure(state=init_mode)
         
-        self.CTkCheckBox_pt.configure(state=init_mode) 
-        self.CTkCheckBox_tf.configure(state=init_mode)
+        self.backend_combobox.configure(state=init_mode) 
         self.CTkCheckBox_lps1.configure(state=init_mode)
         self.CTkCheckBox_v.configure(state=init_mode)
             
@@ -962,8 +1197,10 @@ class MainScreen(ctk.CTk):
             self.CTkLabel_e.configure(text_color=ENABLED_COLOR)
             self.CTkEntry_e.configure(state=train_mode)
 
-            self.CTkCheckBox_pt.configure(state=train_mode) 
-            self.CTkCheckBox_tf.configure(state=train_mode)
+            allowed = ["tensorflow", "pytorch"]
+            self.backend_combobox.configure(values=allowed, state=train_mode)
+            if self.current_backend_var.get() == "auto":
+                self.backend_combobox.set("tensorflow")  # default if auto selected 
             self.CTkCheckBox_lps1.configure(state=train_mode)
             self.CTkCheckBox_v.configure(state=train_mode)
             
@@ -998,11 +1235,12 @@ class MainScreen(ctk.CTk):
             self.CTkCheckBox_pred_only.configure(state=predict_mode)
             self.CTkCheckBox_sppd.configure(state=predict_mode)
 
-            self.CTkCheckBox_pt.configure(state=predict_mode) 
-            self.CTkCheckBox_tf.configure(state=predict_mode)
+            self.backend_combobox.configure(state=predict_mode) 
+            self.backend_combobox.set("auto")
+
             self.CTkCheckBox_v.configure(state=predict_mode)
             
             self.start_button.configure(state=predict_mode)
             self.reset_button.configure(state=predict_mode)
-            
+        
         self.focus()

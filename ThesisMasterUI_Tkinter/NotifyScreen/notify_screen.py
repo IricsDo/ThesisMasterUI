@@ -22,6 +22,7 @@ class NotifyScreen(ctk.CTkToplevel):
         super().__init__(parent)
 
         self.text_body = None
+        self.text_name=None
         self.type_notify = TypeNotify.INFOR
 
         # Create the main window
@@ -56,6 +57,9 @@ class NotifyScreen(ctk.CTkToplevel):
     def set_type(self, type_notify: TypeNotify):
         self.type_notify = type_notify
 
+    def set_text_btn(self, text_name: str):
+        self.text_name = text_name
+        
     def create_screen(self):
         # Create a frame for the notification
         frame = ctk.CTkFrame(
@@ -95,7 +99,7 @@ class NotifyScreen(ctk.CTkToplevel):
         # Close button
         close_button = ctk.CTkButton(
             frame,
-            text="Close",
+            text=self.text_name,
             fg_color="skyblue",
             text_color="black",
             width=80,
@@ -111,12 +115,20 @@ class NotifyScreen(ctk.CTkToplevel):
 
             """Hide the window."""
             self.withdraw()  # Makes the window invisible
-
+        
     def show_window(self, text_body : str, type_notify : TypeNotify):
         print_with_timestep(f"Get notice with type {MAP_STRING[type_notify.value]} and content {text_body}")
+
         self.set_content(text_body)
         self.set_type(type_notify)
+        
+        if self.type_notify != TypeNotify.ERROR:
+            self.set_text_btn("Close")
+        else:
+            self.set_text_btn("Report")
+            
         self.create_screen()
+
         """Show the window."""
         self.deiconify()  # Makes the window visible
 
@@ -124,3 +136,7 @@ class NotifyScreen(ctk.CTkToplevel):
         if self.type_notify != TypeNotify.ERROR:
             """Quit the application."""
             self.destroy()
+        else:
+            print_with_timestep(f"Report critical error to ADMIN! Quit the application")
+            self.destroy()
+
