@@ -44,7 +44,6 @@ class MainScreen(ctk.CTk):
 
         self.thread_phase1 = None
 
-
         self.is_process_done = False
         self.current_percent_process = 0
 
@@ -76,15 +75,16 @@ class MainScreen(ctk.CTk):
         image_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "images"
         )
-        icon_path = Image.open(os.path.join(image_path, "ai_64.ico"))
+        icon_file = os.path.join(image_path, "ai_64.ico")
+        icon_img = Image.open(icon_file)
         """Set the window icon."""
         try:
             # Use Pillow to load the icon as a PhotoImage
-            self.icon_photo = ImageTk.PhotoImage(icon_path)
+            self.icon_photo = ImageTk.PhotoImage(icon_img)
 
             # Apply the icon to the window
             self.wm_iconbitmap()
-            self.iconphoto(False, self.icon_photo)
+            self.iconphoto(False, self.icon_photo)  # type: ignore[arg-type]
             self.log_screen.set_icon(self.icon_photo)
             self.notify_screen.set_icon(self.icon_photo)
 
@@ -349,21 +349,18 @@ class MainScreen(ctk.CTk):
             self.para_frame2, text="-pred_only", font=self.main_font
         )
         self.CTkCheckBox_pred_only.grid(row=0, column=1, padx=2, pady=2, sticky="nsew")
-        self.CTkCheckBox_pred_only.grid_anchor = "center"
         self.CTkCheckBox_pred_only.configure(state="disabled")
 
         self.CTkCheckBox_omd = ctk.CTkCheckBox(
             self.para_frame2, text="-omd", font=self.main_font
         )
         self.CTkCheckBox_omd.grid(row=1, column=1, padx=2, pady=2, sticky="nsew")
-        self.CTkCheckBox_omd.grid_anchor = "center"
         self.CTkCheckBox_omd.configure(state="disabled")
 
         self.CTkCheckBox_sppd = ctk.CTkCheckBox(
             self.para_frame2, text="-sppd", font=self.main_font
         )
         self.CTkCheckBox_sppd.grid(row=2, column=1, padx=2, pady=2, sticky="nsew")
-        self.CTkCheckBox_sppd.grid_anchor = "center"
         self.CTkCheckBox_sppd.configure(state="disabled")
 
         self.para_frame3 = ctk.CTkFrame(self.setting_frame, height=120, corner_radius=0)
@@ -382,21 +379,18 @@ class MainScreen(ctk.CTk):
         self.backend_combobox.grid(
             row=0, rowspan=1, column=0, padx=2, pady=2, sticky="nsew"
         )
-        self.backend_combobox.grid_anchor = "center"
         self.backend_combobox.configure(state="disabled")
 
         self.CTkCheckBox_lps1 = ctk.CTkCheckBox(
             self.para_frame3, text="-lps1", font=self.main_font
         )
         self.CTkCheckBox_lps1.grid(row=2, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkCheckBox_lps1.grid_anchor = "center"
         self.CTkCheckBox_lps1.configure(state="disabled")
 
         self.CTkCheckBox_v = ctk.CTkCheckBox(
             self.para_frame3, text="-v", font=self.main_font
         )
         self.CTkCheckBox_v.grid(row=3, column=0, padx=2, pady=2, sticky="nsew")
-        self.CTkCheckBox_v.grid_anchor = "center"
         self.CTkCheckBox_v.configure(state="disabled")
 
         self.para_frame4 = ctk.CTkFrame(self.setting_frame, height=120, corner_radius=0)
@@ -410,7 +404,6 @@ class MainScreen(ctk.CTk):
             font=self.main_font,
         )
         self.show_log.grid(row=0, column=0, padx=2, pady=2, sticky="nsew")
-        self.show_log.grid_anchor = "center"
 
         self.process_frame = ctk.CTkFrame(
             self.setting_frame, height=120, corner_radius=0
@@ -540,11 +533,14 @@ class MainScreen(ctk.CTk):
             f"Start button is clicked by the user, current state {self.is_process_starting}"
         )
         self.toggle_start_button()
-
         commo_state = "disabled" if self.is_process_starting else "normal"
-
         self.set_group_control(commo_state, except_start_button=True)
-        self.phase1_calling_common()
+
+        self.activate_progress_bar.configure(progress_color="aqua")
+        self.activate_progress_bar.start()
+        self.status_process_bar.configure(progress_color="chartreuse")
+        self.status_process_bar.set(0.0)
+        self.status_label.configure(text="Process is running 0%")
 
         if not self.thread_phase1 and self.is_process_starting:
             self.stop_event.clear()
@@ -555,13 +551,22 @@ class MainScreen(ctk.CTk):
             self.set_group_control("disabled")
 
     def check_thread_termination(self):
-        """Check periodically if the thread has stopped."""
+        """Check periodically if the background thread has stopped, and cleanup when it has."""
         if self.thread_phase1 and self.thread_phase1.is_alive():
-            self.after(100, self.check_thread_termination)  # Check again after 100ms
+            self.after(100, self.check_thread_termination)
+        else:
+            self.thread_phase1 = None
+            print_with_timestep("Background thread has stopped.")
+
+            self.start_button.configure(state="normal")
+            self.reset_button.configure(state="disabled")
 
     def stop_thread(self):
-        """Signal the thread to stop and wait for it."""
-        self.stop_event.set()
+        """Signal the background thread to stop and begin monitoring for termination."""
+        print_with_timestep("Stop requested by user.")
+        if hasattr(self, "stop_event"):
+            self.stop_event.set()
+
         self.check_thread_termination()
 
     def error_critical_handle(self):
@@ -601,7 +606,7 @@ class MainScreen(ctk.CTk):
 
         Validation rules:
         - Required strings per mode must be non-empty.
-        - number_of_h must match r"\d+(,\d+)*" (e.g., "4,10,19") and becomes "-noh 4 10 19".
+        - number_of_h must match r"\\d+(,\\d+)*" (e.g., "4,10,19") and becomes "-noh 4 10 19".
         - min_len_data, epochs_str (if provided) must be non-negative integers (>= 0).
         """
 
@@ -783,148 +788,144 @@ class MainScreen(ctk.CTk):
             return cmd
 
     def phase1_calling_common(self):
-        self.activate_progress_bar.configure(progress_color="aqua")
-        self.activate_progress_bar.start()
-
-        self.status_process_bar.configure(progress_color="chartreuse")
-        self.status_process_bar.set(0.0)
-        self.status_label.configure(text="Process is running 0%")
-
         self.is_process_done = False
+        self.current_percent_process = 0
 
         cmd_args = self.build_command_for_runner()
         if cmd_args is None:
+            self.after(0, self.activate_progress_bar.stop)
+            self.thread_phase1 = None
             return
 
         ws = os.environ.get("ROOT_WS_DUY", "")
-        self.current_percent_process = 0
         if not ws:
-            self.notify_screen.show_window(
-                text_body="Contact admin, has critical error.",
-                type_notify=TypeNotify.ERROR,
+            self.after(
+                0,
+                lambda: self.notify_screen.show_window(
+                    text_body="Contact admin, has critical error.",
+                    type_notify=TypeNotify.ERROR,
+                ),
             )
             self.error_critical_handle()
             return
+
         exe_file_path = os.path.join(ws, "ThesisMaster/scripts/run_script.sh")
         if not os.path.isfile(exe_file_path):
-            self.notify_screen.show_window(
-                text_body="Contact admin, has critical error.",
-                type_notify=TypeNotify.ERROR,
+            self.after(
+                0,
+                lambda: self.notify_screen.show_window(
+                    text_body="Contact admin, has critical error.",
+                    type_notify=TypeNotify.ERROR,
+                ),
             )
             self.error_critical_handle()
             return
 
         if not self.train_path.get() or not self.result_path.get():
-            self.notify_screen.show_window(
-                text_body="The path of train and result must not empty",
-                type_notify=TypeNotify.WARNING,
+            self.after(
+                0,
+                lambda: self.notify_screen.show_window(
+                    text_body="The path of train and result must not empty",
+                    type_notify=TypeNotify.WARNING,
+                ),
             )
-        else:
+            self.error_critical_handle()
+            return
 
-            command = ["stdbuf", "-oL", "bash", exe_file_path] + cmd_args
+        command = ["stdbuf", "-oL", "bash", exe_file_path] + cmd_args
 
-            process = subprocess.Popen(
-                command,
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                cwd=ws,
-                bufsize=1,
-            )
+        process = subprocess.Popen(
+            command,
+            shell=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=ws,
+            bufsize=1,
+        )
 
-            proc = psutil.Process(process.pid)
+        proc = psutil.Process(process.pid)
 
-            stop_event = Event()
+        stop_event = self.stop_event
 
-            stdout_thread = Thread(
-                target=self.stream_output,
-                args=(stop_event, process.stdout, self.handle_output),
-            )
-            stderr_thread = Thread(
-                target=self.stream_output,
-                args=(stop_event, process.stderr, self.handle_output),
-            )
-            stdout_thread.start()
-            stderr_thread.start()
+        stdout_thread = Thread(
+            target=self.stream_output,
+            args=(stop_event, process.stdout, self.handle_output),
+            daemon=True,
+        )
+        stderr_thread = Thread(
+            target=self.stream_output,
+            args=(stop_event, process.stderr, self.handle_output),
+            daemon=True,
+        )
+        stdout_thread.start()
+        stderr_thread.start()
 
-            try:
-                while True:
-                    print_with_timestep(f"Process is running ...")
-
-                    if self.stop_event.is_set():
-                        stop_event.set()
-                        stdout_thread.join(timeout=2)
-                        stderr_thread.join(timeout=2)
-                        print_with_timestep(f"Process is stopping ...")
+        try:
+            while True:
+                if stop_event.is_set():
+                    try:
                         for child in proc.children(recursive=True):
                             child.kill()
                         proc.kill()
+                    except Exception:
+                        pass
+                    try:
                         process.terminate()
-                        process.wait(timeout=2)
+                    except Exception:
+                        pass
+                    break
 
-                        break
-                    if process.poll() is not None:
-                        break
-                    if process.poll() is None:  # If the process is still running
-                        process.kill()  # Force kill the process
+                rc = process.poll()
+                if rc is not None:
+                    break
 
-                # for remaining in process.stdout:
-                #     self.after(100, self.log_screen.add_log, f"{remaining.strip()}")
-                #     self.current_percent_process = self.update_process_status(remaining.strip(), self.current_percent_process)
+                time.sleep(0.1)
 
-                # for remaining in process.stderr:
-                #     self.after(100, self.log_screen.add_log, f"{remaining.strip()}")
-                #     self.current_percent_process = self.update_process_status(remaining.strip(), self.current_percent_process)
+            stdout_thread.join(timeout=2)
+            stderr_thread.join(timeout=2)
 
-                time.sleep(0.01)
-            except subprocess.TimeoutExpired:
-                print_with_timestep(f"Process stop with timeout")
-                process.stdout.close()
-                process.stderr.close()
-                stdout_thread.join()
-                stderr_thread.join()
-                process.kill()
-                process.wait()
+            rc = process.poll()
+            self.is_process_done = (rc == 0) or (self.current_percent_process == 100)
 
-            self.is_process_done = (
-                True if self.current_percent_process == 100 else False
-            )
+        except Exception as e:
+            print_with_timestep(f"Process error: {e}")
+            self.is_process_done = False
 
-        print_with_timestep(f"Process stop with {self.current_percent_process}%")
-        self.activate_progress_bar.stop()
-        self.thread_phase1 = None
-        if self.is_process_done:
-            self.after(0, lambda: self.status_process_bar.set(1.0))
-            self.after(
-                0,
-                lambda: self.status_label.configure(text=f"Process is running {100}%"),
-            )
+        finally:
+            final_percent = self.current_percent_process
 
-            self.notify_screen = None
-            self.notify_screen = notify_screen.NotifyScreen(self)
-            self.notify_screen.show_window(
-                text_body="The process done", type_notify=TypeNotify.INFOR
-            )
-            self.activate_progress_bar.configure(progress_color="whitesmoke")
+            def _finalize_ui():
+                print_with_timestep(f"Process stop with {final_percent}%")
+                self.activate_progress_bar.stop()
+                self.thread_phase1 = None
 
-        else:
-            self.notify_screen = None
-            self.notify_screen = notify_screen.NotifyScreen(self)
-            self.notify_screen.show_window(
-                text_body="The process stops unexpectedly",
-                type_notify=TypeNotify.WARNING,
-            )
-            self.activate_progress_bar.configure(
-                progress_color="yellow", fg_color="yellow"
-            )
-            self.status_process_bar.configure(
-                progress_color="yellow", fg_color="yellow"
-            )
+                if self.is_process_done:
+                    self.status_process_bar.set(1.0)
+                    self.status_label.configure(text="Process is running 100%")
+                    ns = notify_screen.NotifyScreen(self)
+                    ns.show_window(
+                        text_body="The process done", type_notify=TypeNotify.INFOR
+                    )
+                    self.activate_progress_bar.configure(progress_color="whitesmoke")
+                else:
+                    ns = notify_screen.NotifyScreen(self)
+                    ns.show_window(
+                        text_body="The process stops unexpectedly",
+                        type_notify=TypeNotify.WARNING,
+                    )
+                    self.activate_progress_bar.configure(
+                        progress_color="yellow", fg_color="yellow"
+                    )
+                    self.status_process_bar.configure(
+                        progress_color="yellow", fg_color="yellow"
+                    )
 
-        self.toggle_start_button()
-        self.start_button.configure(state="disabled")
-        self.reset_button.configure(state="normal")
+                self.toggle_start_button()
+                self.start_button.configure(state="disabled")
+                self.reset_button.configure(state="normal")
+
+            self.after(0, _finalize_ui)
 
     def update_process_status(self, log: str, current_percent_process: int) -> int:
         new_percent_process = extract_value_from_log(log)
@@ -940,7 +941,6 @@ class MainScreen(ctk.CTk):
         )
 
         return new_percent_process
-
 
     def show_log_change(self):
         print_with_timestep(f"The log screen button is clicked by the user")

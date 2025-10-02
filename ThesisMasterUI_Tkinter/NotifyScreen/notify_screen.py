@@ -23,8 +23,8 @@ class NotifyScreen(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
 
-        self.text_body = None
-        self.text_name = None
+        self.text_body = ""
+        self.text_name = ""
         self.type_notify = TypeNotify.INFOR
 
         # Create the main window
