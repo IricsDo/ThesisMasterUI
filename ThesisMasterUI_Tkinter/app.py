@@ -14,6 +14,6 @@ if __name__ == "__main__":
         show_log.print_with_timestep("App start")
         ms.mainloop()
     except Exception as e:
-        show_log.print_with_timestep(e)
+        show_log.print_with_timestep(e) # type: ignore
     finally:
         show_log.print_with_timestep("App Goodbye User <3!!")

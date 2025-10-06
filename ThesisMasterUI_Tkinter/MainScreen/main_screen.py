@@ -973,244 +973,189 @@ class MainScreen(ctk.CTk):
         self.status_label.configure(text="No process is running.")
 
     def reset_mode(self):
+        """Reset UI elements based on current mode without changing logic."""
         print_with_timestep(
-            f"Reset button is clicked by the user, current state {self.is_process_starting}"
+            f"Reset button clicked — current state: {self.is_process_starting}"
         )
 
         self.reset_status()
-        if self.current_mode_var.get() == "Train mode":
-            self.train_path_button.configure(state="normal")
-            self.result_path_button.configure(state="normal")
-            self.predict_path_button.configure(state="normal")
-            self.json_path_button.configure(state="normal")
-
-            self.train_path.configure(state="normal")
-            self.train_path.delete(0, "end")
-            self.train_path.configure(placeholder_text="Path to your training data")
-            self.train_path.configure(state="readonly")
-
-            self.result_path.configure(state="normal")
-            self.result_path.delete(0, "end")
-            self.result_path.configure(placeholder_text="Path to save your results")
-            self.result_path.configure(state="readonly")
-
-            self.predict_path.configure(state="normal")
-            self.predict_path.delete(0, "end")
-            self.predict_path.configure(placeholder_text="Path to your predict data")
-            self.predict_path.configure(state="readonly")
-
-            self.model_path.configure(state="normal")
-            self.model_path.delete(0, "end")
-            self.model_path.configure(
-                placeholder_text="Path to your model deep learning"
-            )
-            self.model_path.configure(state="readonly")
-
-            self.json_path.configure(state="normal")
-            self.json_path.delete(0, "end")
-            self.json_path.configure(placeholder_text="Path to your JSON config")
-            self.json_path.configure(state="readonly")
-
-            self.backend_combobox.set("tensorflow")
-            self.CTkCheckBox_lps1.deselect()
-
-            self.CTkCheckBox_v.deselect()
-
-            self.CTkEntry_noh.delete(0, "end")
-            self.CTkEntry_noh.configure(placeholder_text="Required, example: 4,10,29")
-
-            self.CTkEntry_mld.delete(0, "end")
-            self.CTkEntry_mld.configure(placeholder_text="Optional, default: 0")
-
-            self.CTkEntry_e.delete(0, "end")
-            self.CTkEntry_e.configure(placeholder_text="Optional, default: 10000")
-
-        elif self.current_mode_var.get() == "Create mode":
-            self.train_path_button.configure(state="normal")
-            self.result_path_button.configure(state="normal")
-
-            self.train_path.configure(state="normal")
-            self.train_path.delete(0, "end")
-            self.train_path.configure(placeholder_text="Path to your training data")
-            self.train_path.configure(state="readonly")
-
-            self.result_path.configure(state="normal")
-            self.result_path.delete(0, "end")
-            self.result_path.configure(placeholder_text="Path to save your results")
-            self.result_path.configure(state="readonly")
-
-            self.CTkEntry_noh.delete(0, "end")
-            self.CTkEntry_noh.configure(placeholder_text="Required, example: 4,10,29")
-
-            self.CTkEntry_mld.delete(0, "end")
-            self.CTkEntry_mld.configure(placeholder_text="Optional, default: 0")
-
-            self.CTkCheckBox_omd.deselect()
-
-            self.CTkCheckBox_lps1.deselect()
-            self.CTkCheckBox_v.deselect()
-
-        elif self.current_mode_var.get() == "Predict mode":
-            self.predict_path_button.configure(state="normal")
-            self.model_path_button.configure(state="normal")
-
-            self.predict_path.configure(state="normal")
-            self.predict_path.delete(0, "end")
-            self.predict_path.configure(placeholder_text="Path to your predict data")
-            self.predict_path.configure(state="readonly")
-
-            self.model_path.configure(state="normal")
-            self.model_path.delete(0, "end")
-            self.model_path.configure(
-                placeholder_text="Path to your model deep learning"
-            )
-            self.model_path.configure(state="readonly")
-
-            self.CTkCheckBox_pred_only.deselect()
-            self.CTkCheckBox_sppd.deselect()
-
-            self.backend_combobox.set("tensorflow")
-            self.CTkCheckBox_v.deselect()
-
+        mode = self.current_mode_var.get()
         self.show_log.deselect()
-
         self.log_screen.clear_log()
         self.log_screen.hide_window()
 
+        def reset_entry(entry, placeholder, value=None, readonly=True):
+            """Safe reset for CTkEntry with placeholder text."""
+            def _apply():
+                entry.configure(state="normal")
+                entry.delete(0, "end")
+                if value is not None:
+                    entry.insert(0, str(value))
+                entry.configure(placeholder_text=placeholder)
+                if readonly:
+                    entry.configure(state="readonly")
+                entry.update_idletasks()
+            entry.after_idle(_apply)
+
+        def reset_checkboxes(*boxes, state="normal", select=False):
+            """Reset one or more checkboxes."""
+            for box in boxes:
+                if select:
+                    box.select()
+                else:
+                    box.deselect()
+                box.configure(state=state)
+
+        def reset_paths(*path_buttons):
+            """Enable path buttons."""
+            for btn in path_buttons:
+                btn.configure(state="normal")
+
+        # === TRAIN MODE ===
+        if mode == "Train mode":
+            reset_paths(
+                self.train_path_button, self.result_path_button,
+                self.predict_path_button, self.json_path_button
+            )
+            reset_entry(self.train_path, "Path to your training data")
+            reset_entry(self.result_path, "Path to save your results")
+            reset_entry(self.predict_path, "Path to your predict data")
+            reset_entry(self.model_path, "Path to your model deep learning")
+            reset_entry(self.json_path, "Path to your JSON config")
+            reset_entry(self.CTkEntry_noh, "Required, example: 4,10,29", readonly=False)
+            reset_entry(self.CTkEntry_mld, "Optional, default: 0", value=0, readonly=False)
+            reset_entry(self.CTkEntry_e, "Optional, default: 10000", value=10000, readonly=False)
+
+            self.backend_combobox.set("tensorflow")
+            reset_checkboxes(self.CTkCheckBox_lps1, self.CTkCheckBox_v, state="normal", select=False)
+
+        # === CREATE MODE ===
+        elif mode == "Create mode":
+            reset_paths(self.train_path_button, self.result_path_button)
+            reset_entry(self.train_path, "Path to your training data")
+            reset_entry(self.result_path, "Path to save your results")
+            reset_entry(self.CTkEntry_noh, "Required, example: 4,10,29", readonly=False)
+            reset_entry(self.CTkEntry_mld, "Optional, default: 0", value=0, readonly=False)
+
+            self.CTkCheckBox_omd.select()
+            reset_checkboxes(self.CTkCheckBox_lps1, self.CTkCheckBox_v, state="normal", select=False)
+
+        # === PREDICT MODE ===
+        elif mode == "Predict mode":
+            reset_paths(self.predict_path_button, self.model_path_button)
+            reset_entry(self.predict_path, "Path to your predict data")
+            reset_entry(self.model_path, "Path to your model deep learning")
+
+            self.CTkCheckBox_pred_only.select()
+            self.CTkCheckBox_sppd.deselect()
+            self.backend_combobox.set("auto")
+            self.CTkCheckBox_v.deselect()
+
         self.focus()
 
-    def update_reset_text(self, *args):
+    def on_mode_change(self, mode: str) -> None:
+        """Handle UI state changes when switching between modes."""
         self.reset_text.set(f"Reset: {self.current_mode_var.get()}")
 
-    def on_mode_change(self, mode) -> None:
-        self.reset_text.set(f"Reset: {self.current_mode_var.get()}")
+        def reset_entry(entry, placeholder, value=None, readonly=True):
+            """Safely clear and update entry with optional default value."""
+            def _apply():
+                entry.configure(state="normal")
+                entry.delete(0, "end")
+                if value is not None:
+                    entry.insert(0, str(value))
+                entry.configure(placeholder_text=placeholder)
+                if readonly:
+                    entry.configure(state="readonly")
+                entry.update_idletasks()
+            entry.after_idle(_apply)
 
-        init_mode = "disabled"
-        self.train_path_button.configure(state=init_mode)
-        self.train_path.configure(state="normal")
-        self.train_path.delete(0, "end")
-        self.train_path.configure(placeholder_text="Path to your training data")
-        self.train_path.configure(state="readonly")
+        def set_state(widget_list, state):
+            """Batch update widget states."""
+            for w in widget_list:
+                w.configure(state=state)
 
-        self.result_path_button.configure(state=init_mode)
-        self.result_path.configure(state="normal")
-        self.result_path.delete(0, "end")
-        self.result_path.configure(placeholder_text="Path to save your results")
-        self.result_path.configure(state="readonly")
+        def reset_checkboxes(*boxes, select=False, state="disabled"):
+            """Deselect or select checkboxes as needed."""
+            for box in boxes:
+                if select:
+                    box.select()
+                else:
+                    box.deselect()
+                box.configure(state=state)
 
-        self.predict_path_button.configure(state=init_mode)
-        self.predict_path.configure(state="normal")
-        self.predict_path.delete(0, "end")
-        self.predict_path.configure(placeholder_text="Path to your predict data")
-        self.predict_path.configure(state="readonly")
+        # === Reset  (disabled) ===
+        all_disabled = [
+            self.train_path_button, self.result_path_button, self.predict_path_button,
+            self.model_path_button, self.json_path_button, self.start_button, self.reset_button,
+            self.backend_combobox, self.CTkCheckBox_lps1, self.CTkCheckBox_v,
+            self.CTkCheckBox_pred_only, self.CTkCheckBox_omd, self.CTkCheckBox_sppd
+        ]
+        set_state(all_disabled, "disabled")
 
-        self.model_path_button.configure(state=init_mode)
-        self.model_path.configure(state="normal")
-        self.model_path.delete(0, "end")
-        self.model_path.configure(placeholder_text="Path to your model deep learning")
-        self.model_path.configure(state="readonly")
+        # Reset entries 
+        reset_entry(self.train_path, "Path to your training data")
+        reset_entry(self.result_path, "Path to save your results")
+        reset_entry(self.predict_path, "Path to your predict data")
+        reset_entry(self.model_path, "Path to your model deep learning")
+        reset_entry(self.json_path, "Path to your JSON config")
+        reset_entry(self.CTkEntry_noh, "Required, example: 4,10,29", readonly=False)
+        reset_entry(self.CTkEntry_mld, "Optional, default: 0", readonly=False)
+        reset_entry(self.CTkEntry_e, "Optional, default: 10000", readonly=False)
 
-        self.json_path_button.configure(state=init_mode)
-        self.json_path.configure(state="normal")
-        self.json_path.delete(0, "end")
-        self.json_path.configure(placeholder_text="Path to your JSON config")
-        self.json_path.configure(state="readonly")
-
-        self.start_button.configure(state=init_mode)
-        self.reset_button.configure(state=init_mode)
-
-        self.CTkLabel_noh.configure(text_color=DISABLED_COLOR)
-        self.CTkEntry_noh.delete(0, "end")
-        self.CTkEntry_noh.configure(
-            state=init_mode, placeholder_text="Required, example: 4,10,29"
-        )
-
-        self.CTkLabel_mld.configure(text_color=DISABLED_COLOR)
-        self.CTkEntry_mld.delete(0, "end")
-        self.CTkEntry_mld.configure(
-            state=init_mode, placeholder_text="Optional, default: 0"
-        )
-
-        self.CTkLabel_e.configure(text_color=DISABLED_COLOR)
-        self.CTkEntry_e.delete(0, "end")
-        self.CTkEntry_e.configure(
-            state=init_mode, placeholder_text="Optional, default: 10000"
-        )
-
-        self.CTkCheckBox_pred_only.deselect()
-        self.CTkCheckBox_omd.deselect()
-        self.CTkCheckBox_sppd.deselect()
-
+        # Reset checkbox 
+        reset_checkboxes(self.CTkCheckBox_pred_only, self.CTkCheckBox_omd, self.CTkCheckBox_sppd)
+        reset_checkboxes(self.CTkCheckBox_lps1, self.CTkCheckBox_v)
         self.backend_combobox.configure(values=["auto", "tensorflow", "pytorch"])
         self.backend_combobox.set("auto")
-        self.CTkCheckBox_lps1.deselect()
-        self.CTkCheckBox_v.deselect()
 
-        self.CTkCheckBox_pred_only.configure(state=init_mode)
-        self.CTkCheckBox_omd.configure(state=init_mode)
-        self.CTkCheckBox_sppd.configure(state=init_mode)
+        # Reset label color
+        for lbl in (self.CTkLabel_noh, self.CTkLabel_mld, self.CTkLabel_e):
+            lbl.configure(text_color=DISABLED_COLOR)
 
-        self.backend_combobox.configure(state=init_mode)
-        self.CTkCheckBox_lps1.configure(state=init_mode)
-        self.CTkCheckBox_v.configure(state=init_mode)
-
+        # === TRAIN MODE ===
         if mode == "Train mode":
-            train_mode = "normal"
-            self.train_path_button.configure(state=train_mode)
-            self.result_path_button.configure(state=train_mode)
-            self.predict_path_button.configure(state=train_mode)
-            self.json_path_button.configure(state=train_mode)
+            active = "normal"
+            set_state(
+                [self.train_path_button, self.result_path_button,
+                self.predict_path_button, self.json_path_button,
+                self.start_button, self.reset_button],
+                active
+            )
 
-            self.CTkLabel_noh.configure(text_color=ENABLED_COLOR)
-            self.CTkEntry_noh.configure(state=train_mode)
-            self.CTkLabel_mld.configure(text_color=ENABLED_COLOR)
-            self.CTkEntry_mld.configure(state=train_mode)
-            self.CTkLabel_e.configure(text_color=ENABLED_COLOR)
-            self.CTkEntry_e.configure(state=train_mode)
+            for lbl in (self.CTkLabel_noh, self.CTkLabel_mld, self.CTkLabel_e):
+                lbl.configure(text_color=ENABLED_COLOR)
+
+            reset_entry(self.CTkEntry_mld, "Optional, default: 0", value=0, readonly=False)
+            reset_entry(self.CTkEntry_e, "Optional, default: 10000", value=10000, readonly=False)
 
             allowed = ["tensorflow", "pytorch"]
-            self.backend_combobox.configure(values=allowed, state=train_mode)
+            self.backend_combobox.configure(values=allowed, state=active)
             if self.current_backend_var.get() == "auto":
-                self.backend_combobox.set("tensorflow")  # default if auto selected
-            self.CTkCheckBox_lps1.configure(state=train_mode)
-            self.CTkCheckBox_v.configure(state=train_mode)
+                self.backend_combobox.set("tensorflow")
 
-            self.start_button.configure(state=train_mode)
-            self.reset_button.configure(state=train_mode)
+            set_state([self.CTkCheckBox_lps1, self.CTkCheckBox_v], active)
 
+        # === CREATE MODE ===
         elif mode == "Create mode":
-            create_mode = "normal"
-            self.train_path_button.configure(state=create_mode)
-            self.result_path_button.configure(state=create_mode)
+            active = "normal"
+            set_state([self.train_path_button, self.result_path_button, self.start_button, self.reset_button], active)
+            for lbl in (self.CTkLabel_noh, self.CTkLabel_mld):
+                lbl.configure(text_color=ENABLED_COLOR)
 
-            self.CTkLabel_noh.configure(text_color=ENABLED_COLOR)
-            self.CTkEntry_noh.configure(state=create_mode)
-            self.CTkLabel_mld.configure(text_color=ENABLED_COLOR)
-            self.CTkEntry_mld.configure(state=create_mode)
+            reset_entry(self.CTkEntry_mld, "Optional, default: 0", value=0, readonly=False)
+            self.CTkCheckBox_omd.configure(state=active)
+            self.CTkCheckBox_omd.select()
+            set_state([self.CTkCheckBox_lps1, self.CTkCheckBox_v], active)
 
-            self.CTkCheckBox_omd.configure(state=create_mode)
-
-            self.CTkCheckBox_lps1.configure(state=create_mode)
-            self.CTkCheckBox_v.configure(state=create_mode)
-
-            self.start_button.configure(state=create_mode)
-            self.reset_button.configure(state=create_mode)
-
+        # === PREDICT MODE ===
         elif mode == "Predict mode":
-            predict_mode = "normal"
-
-            self.predict_path_button.configure(state=predict_mode)
-            self.model_path_button.configure(state=predict_mode)
-
-            self.CTkCheckBox_pred_only.configure(state=predict_mode)
-            self.CTkCheckBox_sppd.configure(state=predict_mode)
-
-            self.backend_combobox.configure(state=predict_mode)
+            active = "normal"
+            set_state([self.predict_path_button, self.model_path_button, self.start_button, self.reset_button], active)
+            reset_checkboxes(self.CTkCheckBox_pred_only, select=True, state=active)
+            self.CTkCheckBox_sppd.configure(state=active)
+            self.backend_combobox.configure(state=active)
             self.backend_combobox.set("auto")
-
-            self.CTkCheckBox_v.configure(state=predict_mode)
-
-            self.start_button.configure(state=predict_mode)
-            self.reset_button.configure(state=predict_mode)
+            self.CTkCheckBox_v.configure(state=active)
 
         self.focus()
