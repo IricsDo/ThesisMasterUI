@@ -10,6 +10,7 @@ from NotifyScreen.notify_screen import TypeNotify
 from PIL import Image, ImageTk
 import os
 import re
+import sys
 
 from utils.extract_value import extract_value_from_log
 from utils.show_log import print_with_timestep
@@ -72,18 +73,37 @@ class MainScreen(ctk.CTk):
         self.set_icon()
 
     def set_icon(self):
-        image_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "images"
-        )
-        icon_file = os.path.join(image_path, "ai_64.ico")
-        icon_img = Image.open(icon_file)
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+            # Running in PyInstaller bundle
+            base_path = getattr(sys, "_MEIPASS", ".")
+            image_path = os.path.join(base_path, "images")
+        else:
+            # Running from source 
+            image_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "images"
+            )
+            
+        ico_path = os.path.join(image_path, "ai_64.ico")
+        png_path = os.path.join(image_path, "ai_128.png")    
+            
+            
         """Set the window icon."""
         try:
+            if ico_path.lower().endswith(".ico") and os.path.exists(ico_path):
+                try:
+                    self.iconbitmap(ico_path)
+                except Exception:
+                    pass
+            if os.path.exists(png_path):
+                icon_img = Image.open(png_path)
+            else:
+                icon_img = Image.open(ico_path)
+                
             # Use Pillow to load the icon as a PhotoImage
             self.icon_photo = ImageTk.PhotoImage(icon_img)
 
             # Apply the icon to the window
-            self.wm_iconbitmap()
+            # self.wm_iconbitmap()
             self.iconphoto(False, self.icon_photo)  # type: ignore[arg-type]
             self.log_screen.set_icon(self.icon_photo)
             self.notify_screen.set_icon(self.icon_photo)
@@ -610,7 +630,7 @@ class MainScreen(ctk.CTk):
         - min_len_data, epochs_str (if provided) must be non-negative integers (>= 0).
         """
 
-        # -------- Read UI values (direct/gọn) --------
+        # -------- Read UI values (direct) --------
         train_dir = self.train_path.get().strip()
         result_dir = self.result_path.get().strip()
         predict_dir = self.predict_path.get().strip()
